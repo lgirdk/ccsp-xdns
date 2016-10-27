@@ -1,0 +1,123 @@
+/*
+ * If not stated otherwise in this file or this component's Licenses.txt file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2015 RDK Management
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+#include "cosa_apis.h"
+#include "dslh_definitions_tr143.h"
+
+#define RESOLV_CONF "/etc/resolv.conf"
+#define DNSMASQ_SERVERS_CONF "/nvram/dnsmasq_servers.conf"
+#define DNSMASQ_SERVERS_BAK "/nvram/dnsmasq_servers.bak"
+
+#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s"
+
+
+#define  COSA_CONTEXT_XDNS_LINK_CLASS_CONTENT                                  \
+        COSA_CONTEXT_LINK_CLASS_CONTENT                                            \
+        BOOL                            bFound;                                    \
+
+
+/***********************************
+    Actual definition declaration
+************************************/
+#define  COSA_IREP_FOLDER_NAME_XDNS                       "Xdns"
+#define  COSA_DML_RR_NAME_NATNextInsNumber               "NextInstanceNumber"
+#define  COSA_DML_RR_NAME_NATAlias                       "Alias"
+#define  COSA_DML_RR_NAME_NATbNew                        "bNew"
+
+/*
+typedef enum _PingServerType
+{
+	PingServerType_IPv4 = 0,
+	PingServerType_IPv6
+} PingServerType;
+*/
+
+typedef  struct
+_COSA_CONTEXT_XDNS_LINK_OBJECT
+{
+    COSA_CONTEXT_XDNS_LINK_CLASS_CONTENT
+}
+COSA_CONTEXT_XDNS_LINK_OBJECT,  *PCOSA_CONTEXT_XDNS_LINK_OBJECT;
+
+typedef  struct
+_COSA_DML_XDNS_MACDNS_MAPPING_ENTRY
+{
+    ULONG                           InstanceNumber;
+    UCHAR                           MacAddress[256];  /* MacAddress string address */
+    UCHAR                           DnsIp[256];  /* IPv4 or IPv4 string address */
+    UCHAR                           Tag[256];  /* Tag string address */
+
+}
+COSA_DML_XDNS_MACDNS_MAPPING_ENTRY,  *PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY;
+
+typedef  struct
+_PCOSA_DML_MAPPING_CONTAINER
+{
+    ULONG                      	    XDNSEntryCount;                                    
+    PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY    pXDNSTable;    
+}
+COSA_DML_MAPPING_CONTAINER,  *PCOSA_DML_MAPPING_CONTAINER;
+
+#define  COSA_DATAMODEL_XDNS_CLASS_CONTENT                                                  \
+    /* duplication of the base object class content */                                      \
+    COSA_BASE_CONTENT                                                                       \
+	ULONG                       MaxInstanceNumber;                                    \
+	ULONG                       ulXDNSNextInstanceNumber;                                    \
+    UCHAR                       DefaultDeviceDnsIp[256];                                         \
+    UCHAR                       DefaultDeviceTag[256];                                            \   
+    SLIST_HEADER                XDNSDeviceList;                                        \
+    PCOSA_DML_MAPPING_CONTAINER    pMappingContainer;                                        \
+	ANSC_HANDLE                     hIrepFolderXdns;                                         \
+    ANSC_HANDLE                     hIrepFolderXdnsMapCont;                                       \
+    /* end of Diagnostic object class content */                                                    \
+
+
+typedef  struct
+_COSA_DATAMODEL_XDNS
+{
+    COSA_DATAMODEL_XDNS_CLASS_CONTENT
+}
+COSA_DATAMODEL_XDNS,  *PCOSA_DATAMODEL_XDNS;
+
+#define  ACCESS_COSA_CONTEXT_XDNS_LINK_OBJECT(p)              \
+         ACCESS_CONTAINER(p, COSA_CONTEXT_XDNS_LINK_OBJECT, Linkage)
+
+/**********************************
+    Standard function declaration
+***********************************/
+ANSC_HANDLE
+CosaXDNSCreate
+    (
+        VOID
+    );
+
+ANSC_STATUS
+CosaXDNSInitialize
+    (
+        ANSC_HANDLE                 hThisObject
+    );
+
+ANSC_STATUS
+CosaXDNSRemove
+    (
+        ANSC_HANDLE                 hThisObject
+    );
+
+void ResetDnsmasqConfFile();
+void AppendDnsmasqConfEntry(char* string1);
