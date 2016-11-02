@@ -16,13 +16,87 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-
+#include <arpa/inet.h>
 #include "ansc_platform.h"
 #include "cosa_xdns_apis.h"
 #include "cosa_xdns_dml.h"
 #include "plugin_main_apis.h"
 //#include "ccsp_xdnsLog_wrapper.h"
 
+
+int isValidIPv4Address(char *ipAddress)
+{
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ipAddress, &(sa.sin_addr));
+    return result;
+}
+
+int isValidIPv6Address(char *ipAddress)
+{
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET6, ipAddress, &(sa.sin_addr));
+    return result;
+}
+
+BOOL isValidMacAddress
+    (
+        PCHAR                       pAddress
+    )
+{
+    ULONG                           length   = 0;
+    ULONG                           i        = 0;
+    char                            c        = 0;
+
+    if( pAddress == NULL)
+    {
+        return TRUE; /* empty string is fine */
+    }
+
+    length = AnscSizeOfString(pAddress);
+
+    if( length == 0)
+    {
+        return TRUE; /* empty string is fine */
+    }
+
+    /*
+     *  Mac address such as "12:BB:AA:99:34:89" is fine, and mac adress
+     *  with Mask is also OK, such as "12:BB:AA:99:34:89/FF:FF:FF:FF:FF:00".
+     */
+    if( length != 17 && length != 35)
+    {
+        return FALSE;
+    }
+
+    if( length > 17 && pAddress[17] != '/')
+    {
+        return FALSE;
+    }
+
+    for( i = 0; i < length ; i ++)
+    {
+        c = pAddress[i];
+
+        if( i % 3 == 2)
+        {
+            if( i != 17 && c != ':')
+            {
+                return FALSE;
+            }
+        }
+        else
+        {
+            if ( AnscIsAlphaOrDigit(c) )
+            {
+                continue;
+            }
+
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
 
 /***********************************************************************
 
@@ -53,12 +127,27 @@ XDNS_GetParamStringValue
 {
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
 
-    if( AnscEqualString(ParamName, "DefaultDeviceDnsIp", TRUE))
+    if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv4", TRUE))
     {
-        int bufsize = strlen(pMyObject->DefaultDeviceDnsIp);
+        int bufsize = strlen(pMyObject->DefaultDeviceDnsIPv4);
         if (bufsize < *pUlSize)
         {
-            AnscCopyString(pValue, pMyObject->DefaultDeviceDnsIp);
+            AnscCopyString(pValue, pMyObject->DefaultDeviceDnsIPv4);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = bufsize + 1;
+            return 1;
+        }
+    }
+
+    if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv6", TRUE))
+    {
+        int bufsize = strlen(pMyObject->DefaultDeviceDnsIPv6);
+        if (bufsize < *pUlSize)
+        {
+            AnscCopyString(pValue, pMyObject->DefaultDeviceDnsIPv6);
             return 0;
         }
         else
@@ -129,14 +218,22 @@ XDNS_SetParamStringValue
 {
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
 
-    if( AnscEqualString(ParamName, "DefaultDeviceDnsIp", TRUE))
+    if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv4", TRUE))
     {
         /* save update to backup */
-        AnscCopyString( pMyObject->DefaultDeviceDnsIp, pString );
+        pMyObject->DefaultDeviceDnsIPv4Changed = TRUE;
+        AnscCopyString( pMyObject->DefaultDeviceDnsIPv4, pString );
+    }
+    else if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv6", TRUE))
+    {
+        /* save update to backup */
+        pMyObject->DefaultDeviceDnsIPv6Changed = TRUE;
+        AnscCopyString( pMyObject->DefaultDeviceDnsIPv6, pString );
     }
     else if( AnscEqualString(ParamName, "DefaultDeviceTag", TRUE))
     {
         /* save update to backup */
+        pMyObject->DefaultDeviceTagChanged = TRUE;
         AnscCopyString( pMyObject->DefaultDeviceTag, pString );
 
     }
@@ -155,16 +252,44 @@ XDNS_Validate
         ULONG*                      puLength
     )
 {
-
+    int ret = TRUE;
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
 
-    if(!strlen(pMyObject->DefaultDeviceDnsIp))
+    if(pMyObject->DefaultDeviceDnsIPv4Changed)
+    {
+        if(!strlen(pMyObject->DefaultDeviceDnsIPv4))
         {
-            AnscCopyString(pReturnParamName, "DnsIp is empty");
+            AnscCopyString(pReturnParamName, "DnsIPv4 is empty");
+        }
+        else
+        {
+            ret = isValidIPv4Address(pMyObject->DefaultDeviceDnsIPv4 == 1) ? TRUE : FALSE;
+        }
+    }
+
+    if(pMyObject->DefaultDeviceDnsIPv6Changed)
+    {
+        if(!strlen(pMyObject->DefaultDeviceDnsIPv6))
+        {
+            AnscCopyString(pReturnParamName, "DnsIPv6 is empty");
+        }
+        else
+        {
+            ret = isValidIPv6Address(pMyObject->DefaultDeviceDnsIPv6 == 1) ? TRUE : FALSE;
+        }
+    }
+
+    if(pMyObject->DefaultDeviceTagChanged)
+    {
+        int len = strlen(pMyObject->DefaultDeviceTag);
+        if(len > 255)
+        {
+            AnscCopyString(pReturnParamName, "Tag Exceeds length");
             return FALSE;
         }
+    }
 
-    return TRUE;
+    return ret;
 }
 
 ULONG
@@ -177,9 +302,28 @@ XDNS_Commit
     char* defaultMacAddress = "00:00:00:00:00:00";
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
 
-    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIp, pMyObject->DefaultDeviceTag);
+#ifndef FEATURE_IPV6
+    if(strlen(pMyObject->DefaultDeviceDnsIPv4))
+    {
+        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
+        ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
+    }
+#else
+    if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
+    {
+        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+        ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
+    }
+#endif    
+    else
+    {
+        CreateDnsmasqServerConf(pMyObject);
+    }
 
-    ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
+    pMyObject->DefaultDeviceDnsIPv4Changed = FALSE;
+    pMyObject->DefaultDeviceDnsIPv6Changed = FALSE;
+    pMyObject->DefaultDeviceTagChanged = FALSE;
+
 	return TRUE;
 }
 
@@ -189,6 +333,54 @@ XDNS_Rollback
         ANSC_HANDLE                 hInsContext
     )
 {
+    PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+
+    char* token = NULL;
+    const char* s = " ";
+    char buf[256] = {0};
+    GetDefaultEntry(&buf);
+
+    token = strtok(buf, s);
+    if(!token)
+    {
+        return FALSE;   
+    }
+
+    token = strtok(NULL, s);
+    if(!token)
+    {
+        return FALSE;   
+    }
+
+    token = strtok(NULL, s);
+    if(token && strstr(token, "."))
+    {
+        strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#ifdef FEATURE_IPV6
+    token = strtok(NULL, s);
+    if(token && strstr(token, ":"))
+    {
+        strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
+    }
+    else
+    {
+        return FALSE;
+    }
+#else
+        strcpy(pMyObject->DefaultDeviceDnsIPv6, "");
+
+#endif
+
+    token = strtok(NULL, s);
+    if(token)
+        strcpy(pMyObject->DefaultDeviceTag, token);
+
 	return TRUE;
 }
 
@@ -196,24 +388,24 @@ XDNS_Rollback
 
  APIs for Object:
 
-    SelfHeal.XDNS.PingServerList.MacDNSMappingTable.{i}.
+    X_RDKCENTRAL-COM_XDNS.DNSMappingTable.{i}.
 
-    *  MacDNSMappingTable_GetEntryCount
-    *  MacDNSMappingTable_GetEntry
-    *  MacDNSMappingTable_IsUpdated
-    *  MacDNSMappingTable_Synchronize
-    *  MacDNSMappingTable_AddEntry
-    *  MacDNSMappingTable_DelEntry
-    *  MacDNSMappingTable_GetParamStringValue
-    *  MacDNSMappingTable_SetParamStringValue
-    *  MacDNSMappingTable_Validate
-    *  MacDNSMappingTable_Commit
-    *  MacDNSMappingTable_Rollback
+    *  DNSMappingTable_GetEntryCount
+    *  DNSMappingTable_GetEntry
+    *  DNSMappingTable_IsUpdated
+    *  DNSMappingTable_Synchronize
+    *  DNSMappingTable_AddEntry
+    *  DNSMappingTable_DelEntry
+    *  DNSMappingTable_GetParamStringValue
+    *  DNSMappingTable_SetParamStringValue
+    *  DNSMappingTable_Validate
+    *  DNSMappingTable_Commit
+    *  DNSMappingTable_Rollback
 
 ***********************************************************************/
 
 ULONG
-MacDNSMappingTable_GetEntryCount
+DNSMappingTable_GetEntryCount
     (
         ANSC_HANDLE hInsContext
     )
@@ -226,7 +418,7 @@ MacDNSMappingTable_GetEntryCount
 }
 
 ANSC_HANDLE
-MacDNSMappingTable_GetEntry
+DNSMappingTable_GetEntry
     (
         ANSC_HANDLE                 hInsContext,
         ULONG                       nIndex,
@@ -249,7 +441,7 @@ MacDNSMappingTable_GetEntry
 }
 
 BOOL
-MacDNSMappingTable_IsUpdated
+DNSMappingTable_IsUpdated
     (
         ANSC_HANDLE                 hInsContext
     )
@@ -260,7 +452,7 @@ MacDNSMappingTable_IsUpdated
 }
 
 ULONG
-MacDNSMappingTable_Synchronize
+DNSMappingTable_Synchronize
     (
         ANSC_HANDLE                 hInsContext
     )
@@ -275,7 +467,7 @@ MacDNSMappingTable_Synchronize
 }
 
 ANSC_HANDLE
-MacDNSMappingTable_AddEntry
+DNSMappingTable_AddEntry
     (
         ANSC_HANDLE                 hInsContext,
         ULONG*                      pInsNumber
@@ -322,7 +514,7 @@ EXIT:
 }
 
 ULONG
-MacDNSMappingTable_DelEntry
+DNSMappingTable_DelEntry
     (
         ANSC_HANDLE                 hInsContext,
         ANSC_HANDLE                 hInstance
@@ -335,12 +527,15 @@ MacDNSMappingTable_DelEntry
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry      = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
 	/* Remove entery from the database */
 
+    ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, NULL);
+
     if ( returnStatus == ANSC_STATUS_SUCCESS )
 	{
 			/* Remove entery from the Queue */
         if(AnscSListPopEntryByLink(&pXdns->XDNSDeviceList, &pXdnsCxtLink->Linkage) == TRUE)
 		{
 			AnscFreeMemory(pXdnsCxtLink->hContext);
+
 			AnscFreeMemory(pXdnsCxtLink);
 		}
 		else
@@ -357,7 +552,7 @@ MacDNSMappingTable_DelEntry
 }
 
 ULONG
-MacDNSMappingTable_GetParamStringValue
+DNSMappingTable_GetParamStringValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -385,16 +580,30 @@ MacDNSMappingTable_GetParamStringValue
         }
     }
 
-    if( AnscEqualString(ParamName, "DnsIp", TRUE))
+    if( AnscEqualString(ParamName, "DnsIPv4", TRUE))
     {
-        if ( AnscSizeOfString(pDnsTableEntry->DnsIp) < *pUlSize)
+        if ( AnscSizeOfString(pDnsTableEntry->DnsIPv4) < *pUlSize)
         {
-            AnscCopyString(pValue, pDnsTableEntry->DnsIp);
+            AnscCopyString(pValue, pDnsTableEntry->DnsIPv4);
             return 0;
         }
         else
         {
-            *pUlSize = AnscSizeOfString(pDnsTableEntry->DnsIp)+1;
+            *pUlSize = AnscSizeOfString(pDnsTableEntry->DnsIPv4)+1;
+            return 1;
+        }
+    }
+
+    if( AnscEqualString(ParamName, "DnsIPv6", TRUE))
+    {
+        if ( AnscSizeOfString(pDnsTableEntry->DnsIPv6) < *pUlSize)
+        {
+            AnscCopyString(pValue, pDnsTableEntry->DnsIPv6);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(pDnsTableEntry->DnsIPv6)+1;
             return 1;
         }
     }
@@ -417,7 +626,7 @@ MacDNSMappingTable_GetParamStringValue
 }
 
 BOOL
-MacDNSMappingTable_SetParamStringValue
+DNSMappingTable_SetParamStringValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -430,27 +639,38 @@ MacDNSMappingTable_SetParamStringValue
 	
     if( AnscEqualString(ParamName, "MacAddress", TRUE))
     {
-		 AnscCopyString(pDnsTableEntry->MacAddress,strValue);
-		 return TRUE;
+        AnscCopyString(pDnsTableEntry->MacAddress,strValue);
+        pDnsTableEntry->MacAddressChanged = TRUE;
+        return TRUE;
 	}
 
-    if( AnscEqualString(ParamName, "DnsIp", TRUE))
+    if( AnscEqualString(ParamName, "DnsIPv4", TRUE))
     {
-         AnscCopyString(pDnsTableEntry->DnsIp,strValue);
-         return TRUE;
+        AnscCopyString(pDnsTableEntry->DnsIPv4,strValue);
+        pDnsTableEntry->DnsIPv4Changed = TRUE;
+
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "DnsIPv6", TRUE))
+    {
+        AnscCopyString(pDnsTableEntry->DnsIPv6,strValue);
+        pDnsTableEntry->DnsIPv6Changed = TRUE;
+        return TRUE;
     }
 
     if( AnscEqualString(ParamName, "Tag", TRUE))
     {
-         AnscCopyString(pDnsTableEntry->Tag,strValue);
-         return TRUE;
+        AnscCopyString(pDnsTableEntry->Tag,strValue);
+        pDnsTableEntry->TagChanged = TRUE;        
+        return TRUE;
     }    
-
-	return FALSE;
+    
+    return FALSE;
 }
 
 BOOL
-MacDNSMappingTable_Validate
+DNSMappingTable_Validate
     (
         ANSC_HANDLE                 hInsContext,
         char*                       pReturnParamName,
@@ -461,24 +681,61 @@ MacDNSMappingTable_Validate
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
 
+    BOOL ret = FALSE;
 
-    if(!strlen(pDnsTableEntry->MacAddress))
+    if(pDnsTableEntry->MacAddressChanged)
+    {
+        if(!strlen(pDnsTableEntry->MacAddress))
         {
-            AnscCopyString(pReturnParamName, "MacAddress is empty");
-            return FALSE;
+            AnscCopyString(pReturnParamName, "MacADdress is empty");
         }
-    
-    if(!strlen(pDnsTableEntry->DnsIp))
+        else
         {
-            AnscCopyString(pReturnParamName, "DnsIp is empty");
-            return FALSE;
+            ret = (isValidMacAddress(pDnsTableEntry->MacAddress) == TRUE) ? TRUE : FALSE;
         }
+    }
 
-    return TRUE;
+    if(pDnsTableEntry->DnsIPv4Changed)
+    {
+        if(!strlen(pDnsTableEntry->DnsIPv4))
+        {
+            AnscCopyString(pReturnParamName, "DnsIPv4 is empty");
+        }
+        else
+        {
+            ret = (isValidIPv4Address(pDnsTableEntry->DnsIPv4) == 1) ? TRUE : FALSE;
+        }
+    }
+
+    if(pDnsTableEntry->DnsIPv6Changed)
+    {
+        if(!strlen(pDnsTableEntry->DnsIPv6))
+        {
+            AnscCopyString(pReturnParamName, "DnsIPv6 is empty");
+        }
+        else
+        {
+            ret = (isValidIPv6Address(pDnsTableEntry->DnsIPv6) == 1) ? TRUE : FALSE;
+        }
+    }
+
+    if(pDnsTableEntry->TagChanged)
+    {
+        int len = strlen(pDnsTableEntry->Tag);
+        if(len > 255)
+        {
+            AnscCopyString(pReturnParamName, "Tag Exceeds length");
+            ret = FALSE;
+        }
+        else
+            ret = TRUE;
+    }
+
+    return ret;
 }
 
 ULONG
-MacDNSMappingTable_Commit
+DNSMappingTable_Commit
     (
         ANSC_HANDLE                 hInsContext
     )
@@ -489,13 +746,23 @@ MacDNSMappingTable_Commit
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
 
-    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIp, pDnsTableEntry->Tag);
-
+#ifdef FEATURE_IPV6
+    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
+#else
+    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->Tag);
+#endif
     ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, dnsoverrideEntry);
+
+    pDnsTableEntry->MacAddressChanged = FALSE;
+    pDnsTableEntry->DnsIPv4Changed = FALSE;
+    pDnsTableEntry->DnsIPv6Changed = FALSE;
+    pDnsTableEntry->TagChanged = FALSE;        
+
+
 }
 
 ULONG
-MacDNSMappingTable_Rollback
+DNSMappingTable_Rollback
     (
         ANSC_HANDLE                 hInsContext
     )

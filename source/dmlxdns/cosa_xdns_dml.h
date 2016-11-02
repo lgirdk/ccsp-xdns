@@ -84,30 +84,30 @@ XDNS_Rollback
 
  APIs for Object:
 
-    SelfHeal.XDNS.PingServerList.MacDNSMappingTable.{i}.
+    X_RDKCENTRAL-COM_XDNS.DNSMappingTable.{i}.
 
-    *  MacDNSMappingTable_GetEntryCount
-    *  MacDNSMappingTable_GetEntry
-    *  MacDNSMappingTable_IsUpdated
-    *  MacDNSMappingTable_Synchronize
-    *  MacDNSMappingTable_AddEntry
-    *  MacDNSMappingTable_DelEntry
-    *  MacDNSMappingTable_GetParamStringValue
-    *  MacDNSMappingTable_SetParamStringValue
-    *  MacDNSMappingTable_Validate
-    *  MacDNSMappingTable_Commit
-    *  MacDNSMappingTable_Rollback
+    *  DNSMappingTable_GetEntryCount
+    *  DNSMappingTable_GetEntry
+    *  DNSMappingTable_IsUpdated
+    *  DNSMappingTable_Synchronize
+    *  DNSMappingTable_AddEntry
+    *  DNSMappingTable_DelEntry
+    *  DNSMappingTable_GetParamStringValue
+    *  DNSMappingTable_SetParamStringValue
+    *  DNSMappingTable_Validate
+    *  DNSMappingTable_Commit
+    *  DNSMappingTable_Rollback
 
 ***********************************************************************/
 
 ULONG
-MacDNSMappingTable_GetEntryCount
+DNSMappingTable_GetEntryCount
     (
         ANSC_HANDLE
     );
 
 ANSC_HANDLE
-MacDNSMappingTable_GetEntry
+DNSMappingTable_GetEntry
     (
         ANSC_HANDLE                 hInsContext,
         ULONG                       nIndex,
@@ -115,33 +115,33 @@ MacDNSMappingTable_GetEntry
     );
 
 BOOL
-MacDNSMappingTable_IsUpdated
+DNSMappingTable_IsUpdated
     (
         ANSC_HANDLE                 hInsContext
     );
 
 ULONG
-MacDNSMappingTable_Synchronize
+DNSMappingTable_Synchronize
     (
         ANSC_HANDLE                 hInsContext
     );
 
 ANSC_HANDLE
-MacDNSMappingTable_AddEntry
+DNSMappingTable_AddEntry
     (
         ANSC_HANDLE                 hInsContext,
         ULONG*                      pInsNumber
     );
 
 ULONG
-MacDNSMappingTable_DelEntry
+DNSMappingTable_DelEntry
     (
         ANSC_HANDLE                 hInsContext,
         ANSC_HANDLE                 hInstance
     );
 
 ULONG
-MacDNSMappingTable_GetParamStringValue
+DNSMappingTable_GetParamStringValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -150,7 +150,7 @@ MacDNSMappingTable_GetParamStringValue
     );
 
 BOOL
-MacDNSMappingTable_SetParamStringValue
+DNSMappingTable_SetParamStringValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -158,7 +158,7 @@ MacDNSMappingTable_SetParamStringValue
     );
 
 BOOL
-MacDNSMappingTable_Validate
+DNSMappingTable_Validate
     (
         ANSC_HANDLE                 hInsContext,
         char*                       pReturnParamName,
@@ -166,13 +166,13 @@ MacDNSMappingTable_Validate
     );
 
 ULONG
-MacDNSMappingTable_Commit
+DNSMappingTable_Commit
     (
         ANSC_HANDLE                 hInsContext
     );
 
 ULONG
-MacDNSMappingTable_Rollback
+DNSMappingTable_Rollback
     (
         ANSC_HANDLE                 hInsContext
     );

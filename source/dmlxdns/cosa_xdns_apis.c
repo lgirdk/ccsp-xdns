@@ -62,28 +62,31 @@
 #include "plugin_main_apis.h"
 #include "cosa_xdns_apis.h"
 
-
-void ResetDnsmasqConfFile()
+void GetDefaultEntry(char* defaultEntry)
 {
-	unlink(DNSMASQ_SERVERS_CONF);
+    char dnsmasqConfEntry[256] = {0};
+    char defaultMacAddress[] = "00:00:00:00:00:00";
+    //Step 1: Open text files and check that they open//
+    FILE *fp1;
+    fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
 
-    char resolvConfEntry[256] = {0};
-    FILE *fp1, *fp2;
-    fp1 = fopen(RESOLV_CONF,"r");
-    fp2 = fopen(DNSMASQ_SERVERS_CONF ,"w");
-
-    if(fp1 == NULL || fp2 == NULL)
+    if(fp1 == NULL)
     {
         printf("\nError reading file\n");
         return;
     }
-    while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
+    //Step 2: Get text from original file//
+    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) !=NULL)
     {
-        fprintf(fp2, "%s", resolvConfEntry);
+        if(strstr(dnsmasqConfEntry, defaultMacAddress) != NULL)
+            {
+                strcpy(defaultEntry, dnsmasqConfEntry);
+                break;
+            }
+
     }
 
     fclose(fp1);
-	fclose(fp2);
 }
 
 void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
@@ -112,6 +115,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
         fprintf(fp2, "%s", dnsmasqConfEntry);
     }
 
+    if(overrideEntry)
         fprintf(fp2, "%s", overrideEntry);
 
     fclose(fp1);
@@ -139,11 +143,16 @@ void AppendDnsmasqConfEntry(char* string1)
 void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
 {
     char resolvConfEntry[256] = {0};
-    char resolvConfFirstNameserver[256] = {0};
+    char buf[256] = {0};
+    char resolvConfFirstIPv4Nameserver[256] = {0};
+    char resolvConfFirstIPv6Nameserver[256] = {0};
     char dnsmasqConfOverrideEntry[256] = {0};
-    char* token;
+    char tokenIPv4[256] = {0};
+    char tokenIPv6[256] = {0};
+    char* token = NULL;;
     const char* s = " ";
-    int found = 0;
+    int foundIPv4 = 0;
+    int foundIPv6 = 0;
 
     //Step 1: Open text files and check that they open//
     FILE *fp1, *fp2;
@@ -160,10 +169,37 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     //Step 2: Get text from original file//
     while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
     {
-    	if(found != 1 && strstr(resolvConfEntry, "nameserver") != NULL)
+    	if(strstr(resolvConfEntry, "nameserver") != NULL)
     		{
-    			strcpy(resolvConfFirstNameserver, resolvConfEntry);
-    			found = 1;
+                strcpy(buf, resolvConfEntry);
+
+                char *newline = strchr( buf, '\n' );
+                if ( newline )
+                    *newline = 0;
+
+                token = strtok(buf, s);
+                if(!token)
+                {
+                    continue;   
+                }                 
+
+                token = strtok(NULL, s);
+                if(!token)
+                {
+                    continue;   
+                }                 
+
+                if(!foundIPv4 && strstr(token, "."))
+                {
+                    foundIPv4 = 1;
+                    strcpy(tokenIPv4, token);
+                }
+                
+                if(!foundIPv6 && strstr(token, ":")) 
+                {
+                    foundIPv6 = 1;
+                    strcpy(tokenIPv6, token);
+                }
     		}
 
         fprintf(fp2, "%s", resolvConfEntry);
@@ -172,39 +208,36 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     fclose(fp1);
 	fclose(fp2);
 	/* get the first token */
-	token = strtok(resolvConfFirstNameserver, s);
-	token = strtok(NULL, s);
 
+    strcpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4);
+    strcpy(pMyObject->DefaultDeviceDnsIPv6, tokenIPv6);
+    strcpy(pMyObject->DefaultDeviceTag, "empty");
 
-    strcpy(pMyObject->DefaultDeviceDnsIp, token);
-
-	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s", token);
-
+#ifndef FEATURE_IPV6
+	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", tokenIPv4, pMyObject->DefaultDeviceTag);
 	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
-
+#else
+    snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
+    AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
+#endif
 }
 
-void FillEntryInList(PCOSA_DATAMODEL_XDNS pXdns, PCOSA_DML_MAPPING_CONTAINER pMappingContainer)
+void FillEntryInList(PCOSA_DATAMODEL_XDNS pXdns, PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY dnsTableEntry)
 {
-	PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pServerIpv4 = NULL;
 	PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink = NULL;
 
-	int Qdepth = 0;
     pXdnsCxtLink = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)AnscAllocateMemory(sizeof(COSA_CONTEXT_XDNS_LINK_OBJECT));
     if ( !pXdnsCxtLink )
     {
+        fprintf(stderr, "Allocation failed \n");
         return;
     }
 
-	Qdepth = AnscSListQueryDepth( &pXdns->XDNSDeviceList );
-
 	pXdnsCxtLink->InstanceNumber =  pXdns->ulXDNSNextInstanceNumber;
-	pMappingContainer->pXDNSTable[Qdepth].InstanceNumber =  pXdns->ulXDNSNextInstanceNumber;
+    dnsTableEntry->InstanceNumber =  pXdns->ulXDNSNextInstanceNumber;
 	pXdns->ulXDNSNextInstanceNumber++;
 
-
-	pServerIpv4 = &pMappingContainer->pXDNSTable[Qdepth];
-	pXdnsCxtLink->hContext = (ANSC_HANDLE)pServerIpv4;
+	pXdnsCxtLink->hContext = (ANSC_HANDLE)dnsTableEntry;
 	CosaSListPushEntryByInsNum(&pXdns->XDNSDeviceList, (PCOSA_CONTEXT_LINK_OBJECT)pXdnsCxtLink); 
 }
 
@@ -216,12 +249,12 @@ CosaDmlGetSelfHealCfg(
 {
 	PCOSA_DATAMODEL_XDNS      pMyObject            = (PCOSA_DATAMODEL_XDNS)hThisObject;
 	PCOSA_DML_MAPPING_CONTAINER    pMappingContainer            = (PCOSA_DML_MAPPING_CONTAINER)NULL;
-	PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY macdnsentry = NULL; 
     char buf[256] = {0};
 	char stub[64];
 	FILE* fp_dnsmasq_conf = NULL;
 	int ret = 0;
 	int index = 0;
+    PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry = NULL;
 
 	pMappingContainer = (PCOSA_DML_MAPPING_CONTAINER)AnscAllocateMemory(sizeof(COSA_DML_MAPPING_CONTAINER));
 
@@ -234,32 +267,67 @@ CosaDmlGetSelfHealCfg(
 
     while ( fgets(buf, sizeof(buf), fp_dnsmasq_conf)!= NULL )
     {
+        char *newline = strchr( buf, '\n' );
+        if ( newline )
+            *newline = 0;
+
         if ( !strstr(buf, "dnsoverride"))
         {
             continue;
         }
 
+
         if (strstr(buf, "00:00:00:00:00:00"))
         {
-            char* token;
+            char* token = NULL;
             const char* s = " ";
             token = strtok(buf, s);
+            if(!token)
+            {
+                continue;   
+            }   
+            
             token = strtok(NULL, s);
+            if(!token)
+            {
+                continue;   
+            } 
 
-            strcpy(pMyObject->DefaultDeviceDnsIp, token);
+            token = strtok(NULL, s);
+            if(token && strstr(token, "."))
+            {
+                strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
+            }
+            else
+            {
+                continue;
+            }
+
+#ifdef FEATURE_IPV6
+            token = strtok(NULL, s);
+            if(token && strstr(token, ":"))
+            {
+                strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
+            }
+            else
+            {
+                continue;
+            }
+#endif
 
             token = strtok(NULL, s);
             if(token)
+            {
                 strcpy(pMyObject->DefaultDeviceTag, token);
+            }
 
             continue;
         }
 
-
-        pMappingContainer->pXDNSTable = (COSA_DML_XDNS_MACDNS_MAPPING_ENTRY *) realloc(pMappingContainer->pXDNSTable, (sizeof(COSA_DML_XDNS_MACDNS_MAPPING_ENTRY) * (index+1)));
-
-        if ( pMappingContainer->pXDNSTable == NULL )
+        pDnsTableEntry = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)AnscAllocateMemory(sizeof(COSA_DML_XDNS_MACDNS_MAPPING_ENTRY));
+        if ( !pDnsTableEntry )
         {
+            CcspTraceWarning(("%s resource allocation failed\n",__FUNCTION__));
             fclose(fp_dnsmasq_conf);
             unlink(DNSMASQ_SERVERS_CONF);
             break;
@@ -269,23 +337,39 @@ CosaDmlGetSelfHealCfg(
         Sample:
         dnsoverride AA:BB:CC:DD:EE:FF 1.2.3.4 ArbitrarySting
         */
+
         ret = sscanf(buf, XDNS_ENTRY_FORMAT,
-        		 stub,
-                 pMappingContainer->pXDNSTable[index].MacAddress,
-                 pMappingContainer->pXDNSTable[index].DnsIp,
-                 pMappingContainer->pXDNSTable[index].Tag);
+                 stub,
+                 pDnsTableEntry->MacAddress,
+                 pDnsTableEntry->DnsIPv4,
+#ifdef FEATURE_IPV6
+                 pDnsTableEntry->DnsIPv6,
+#endif                 
+                 pDnsTableEntry->Tag);
+
+/*        fprintf(stderr, "%s:%s %s %s\n", __FUNCTION__,
+                pDnsTableEntry->MacAddress,
+                pDnsTableEntry->DnsIPv4,
+                pDnsTableEntry->Tag);
+*/
 
 
-/*        printf("%s:%s %s %s\n", __FUNCTION__,
-                pMappingContainer->pXDNSTable[index].MacAddress,
-                pMappingContainer->pXDNSTable[index].DnsIp,
-                pMappingContainer->pXDNSTable[index].Tag);*/
+        if(ret != 4)
+        {
+            free(pDnsTableEntry);
+            continue;
+        }
 
         index++;		
-		FillEntryInList(pMyObject, pMappingContainer);
+
+
+		FillEntryInList(pMyObject, pDnsTableEntry);
     }
 
     pMappingContainer->XDNSEntryCount = index;
+
+    //fprintf(stderr, "index %d\n", index);
+
     fclose(fp_dnsmasq_conf);
 
 	return pMappingContainer;

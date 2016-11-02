@@ -24,8 +24,11 @@
 #define DNSMASQ_SERVERS_CONF "/nvram/dnsmasq_servers.conf"
 #define DNSMASQ_SERVERS_BAK "/nvram/dnsmasq_servers.bak"
 
-#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s"
-
+#ifdef FEATURE_IPV6
+#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s %63s"
+#else
+#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s" 
+#endif
 
 #define  COSA_CONTEXT_XDNS_LINK_CLASS_CONTENT                                  \
         COSA_CONTEXT_LINK_CLASS_CONTENT                                            \
@@ -60,9 +63,13 @@ _COSA_DML_XDNS_MACDNS_MAPPING_ENTRY
 {
     ULONG                           InstanceNumber;
     UCHAR                           MacAddress[256];  /* MacAddress string address */
-    UCHAR                           DnsIp[256];  /* IPv4 or IPv4 string address */
+    BOOL                            MacAddressChanged;                                         
+    UCHAR                           DnsIPv4[256];  /* IPv4 or IPv4 string address */
+    BOOL                            DnsIPv4Changed;                                         
+    UCHAR                           DnsIPv6[256];  /* IPv6 or IPv6 string address */
+    BOOL                            DnsIPv6Changed;                                         
     UCHAR                           Tag[256];  /* Tag string address */
-
+    BOOL                            TagChanged;                                         
 }
 COSA_DML_XDNS_MACDNS_MAPPING_ENTRY,  *PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY;
 
@@ -79,8 +86,12 @@ COSA_DML_MAPPING_CONTAINER,  *PCOSA_DML_MAPPING_CONTAINER;
     COSA_BASE_CONTENT                                                                       \
 	ULONG                       MaxInstanceNumber;                                    \
 	ULONG                       ulXDNSNextInstanceNumber;                                    \
-    UCHAR                       DefaultDeviceDnsIp[256];                                         \
+    UCHAR                       DefaultDeviceDnsIPv4[256];                                         \
+    BOOL                        DefaultDeviceDnsIPv4Changed;                                         \
+    UCHAR                       DefaultDeviceDnsIPv6[256];                                         \
+    BOOL                        DefaultDeviceDnsIPv6Changed;                                         \
     UCHAR                       DefaultDeviceTag[256];                                            \   
+    BOOL                        DefaultDeviceTagChanged;                                         \
     SLIST_HEADER                XDNSDeviceList;                                        \
     PCOSA_DML_MAPPING_CONTAINER    pMappingContainer;                                        \
 	ANSC_HANDLE                     hIrepFolderXdns;                                         \
