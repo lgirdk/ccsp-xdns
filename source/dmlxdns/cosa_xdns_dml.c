@@ -21,7 +21,7 @@
 #include "cosa_xdns_apis.h"
 #include "cosa_xdns_dml.h"
 #include "plugin_main_apis.h"
-//#include "ccsp_xdnsLog_wrapper.h"
+#include "ccsp_xdnsLog_wrapper.h"
 
 
 int isValidIPv4Address(char *ipAddress)
@@ -217,6 +217,7 @@ XDNS_SetParamStringValue
     )
 {
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv4", TRUE))
     {
@@ -238,8 +239,12 @@ XDNS_SetParamStringValue
 
     }
     else
+    {
+        CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT FALSE \n", __FUNCTION__ ));
         return FALSE;
+    }
 
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT TRUE \n", __FUNCTION__ ));
     return TRUE;
 }
 
@@ -254,16 +259,20 @@ XDNS_Validate
 {
     int ret = TRUE;
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     if(pMyObject->DefaultDeviceDnsIPv4Changed)
     {
         if(!strlen(pMyObject->DefaultDeviceDnsIPv4))
         {
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : IPv4 String is Empty  RET %d \n", __FUNCTION__, ret ));
             AnscCopyString(pReturnParamName, "DnsIPv4 is empty");
+            return FALSE;
         }
         else
         {
-            ret = isValidIPv4Address(pMyObject->DefaultDeviceDnsIPv4 == 1) ? TRUE : FALSE;
+            ret = (isValidIPv4Address(pMyObject->DefaultDeviceDnsIPv4) == 1) ? TRUE : FALSE;
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s :  isValidIPv4Address RET %d \n", __FUNCTION__, ret ));
         }
     }
 
@@ -272,10 +281,12 @@ XDNS_Validate
         if(!strlen(pMyObject->DefaultDeviceDnsIPv6))
         {
             AnscCopyString(pReturnParamName, "DnsIPv6 is empty");
+            return FALSE;
         }
         else
         {
-            ret = isValidIPv6Address(pMyObject->DefaultDeviceDnsIPv6 == 1) ? TRUE : FALSE;
+            ret = (isValidIPv6Address(pMyObject->DefaultDeviceDnsIPv6) == 1) ? TRUE : FALSE;
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s :  isValidIPv6Address RET %d \n", __FUNCTION__, ret ));
         }
     }
 
@@ -289,6 +300,7 @@ XDNS_Validate
         }
     }
 
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT  RET %d \n", __FUNCTION__, ret ));
     return ret;
 }
 
@@ -301,17 +313,18 @@ XDNS_Commit
     char dnsoverrideEntry[256] = {0};
     char* defaultMacAddress = "00:00:00:00:00:00";
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
 #ifndef FEATURE_IPV6
     if(strlen(pMyObject->DefaultDeviceDnsIPv4))
     {
-        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
+        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
     }
 #else
     if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
     {
-        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
     }
 #endif    
@@ -324,6 +337,8 @@ XDNS_Commit
     pMyObject->DefaultDeviceDnsIPv6Changed = FALSE;
     pMyObject->DefaultDeviceTagChanged = FALSE;
 
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
 	return TRUE;
 }
 
@@ -334,11 +349,14 @@ XDNS_Rollback
     )
 {
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     char* token = NULL;
     const char* s = " ";
     char buf[256] = {0};
-    GetDefaultEntry(&buf);
+    char* defaultMacAddress = "00:00:00:00:00:00";
+
+    GetDnsMasqFileEntry(defaultMacAddress, &buf);
 
     token = strtok(buf, s);
     if(!token)
@@ -380,6 +398,8 @@ XDNS_Rollback
     token = strtok(NULL, s);
     if(token)
         strcpy(pMyObject->DefaultDeviceTag, token);
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
 	return TRUE;
 }
@@ -564,6 +584,7 @@ DNSMappingTable_GetParamStringValue
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
     PUCHAR                                    pString       = NULL;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     /* check the parameter name and return the corresponding value */
     if( AnscEqualString(ParamName, "MacAddress", TRUE))
@@ -622,6 +643,8 @@ DNSMappingTable_GetParamStringValue
         }
     }
 
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT \n", __FUNCTION__ ));
+
     return -1;
 }
 
@@ -636,37 +659,48 @@ DNSMappingTable_SetParamStringValue
 {
 	PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
-	
+    BOOL ret = FALSE;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
     if( AnscEqualString(ParamName, "MacAddress", TRUE))
     {
-        AnscCopyString(pDnsTableEntry->MacAddress,strValue);
-        pDnsTableEntry->MacAddressChanged = TRUE;
-        return TRUE;
+
+        if(!strlen(pDnsTableEntry->MacAddress))
+        {
+            AnscCopyString(pDnsTableEntry->MacAddress,strValue);
+            pDnsTableEntry->MacAddressChanged = TRUE;
+            ret =  TRUE;            
+        }
+        else
+        {
+            ret =  FALSE;
+        }
+
 	}
 
     if( AnscEqualString(ParamName, "DnsIPv4", TRUE))
     {
         AnscCopyString(pDnsTableEntry->DnsIPv4,strValue);
         pDnsTableEntry->DnsIPv4Changed = TRUE;
-
-        return TRUE;
+        ret = TRUE;
     }
 
     if( AnscEqualString(ParamName, "DnsIPv6", TRUE))
     {
         AnscCopyString(pDnsTableEntry->DnsIPv6,strValue);
         pDnsTableEntry->DnsIPv6Changed = TRUE;
-        return TRUE;
+        ret = TRUE;
     }
 
     if( AnscEqualString(ParamName, "Tag", TRUE))
     {
         AnscCopyString(pDnsTableEntry->Tag,strValue);
         pDnsTableEntry->TagChanged = TRUE;        
-        return TRUE;
+        ret = TRUE;
     }    
-    
-    return FALSE;
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT %d \n", __FUNCTION__, ret ));
+
+    return ret;
 }
 
 BOOL
@@ -680,14 +714,21 @@ DNSMappingTable_Validate
 {
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
+    char* defaultMacAddress = "00:00:00:00:00:00";
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     BOOL ret = FALSE;
 
     if(pDnsTableEntry->MacAddressChanged)
     {
-        if(!strlen(pDnsTableEntry->MacAddress))
+        char buf[256] = {0};
+        GetDnsMasqFileEntry(pDnsTableEntry->MacAddress, &buf);        
+        if(!strlen(pDnsTableEntry->MacAddress) || !strcmp(pDnsTableEntry->MacAddress, defaultMacAddress)  || strlen(buf))
         {
-            AnscCopyString(pReturnParamName, "MacADdress is empty");
+            AnscCopyString(pReturnParamName, "MacAddress is Invalid");
+            AnscCopyString(pDnsTableEntry->MacAddress, "");
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT %d \n", __FUNCTION__, ret ));
+            return FALSE;
         }
         else
         {
@@ -700,6 +741,7 @@ DNSMappingTable_Validate
         if(!strlen(pDnsTableEntry->DnsIPv4))
         {
             AnscCopyString(pReturnParamName, "DnsIPv4 is empty");
+            return FALSE;
         }
         else
         {
@@ -712,6 +754,7 @@ DNSMappingTable_Validate
         if(!strlen(pDnsTableEntry->DnsIPv6))
         {
             AnscCopyString(pReturnParamName, "DnsIPv6 is empty");
+            return FALSE;
         }
         else
         {
@@ -725,11 +768,13 @@ DNSMappingTable_Validate
         if(len > 255)
         {
             AnscCopyString(pReturnParamName, "Tag Exceeds length");
-            ret = FALSE;
+            return FALSE;
         }
         else
             ret = TRUE;
     }
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT %d \n", __FUNCTION__, ret ));
 
     return ret;
 }
@@ -745,6 +790,7 @@ DNSMappingTable_Commit
 
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
 #ifdef FEATURE_IPV6
     snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
@@ -758,6 +804,7 @@ DNSMappingTable_Commit
     pDnsTableEntry->DnsIPv6Changed = FALSE;
     pDnsTableEntry->TagChanged = FALSE;        
 
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT  \n", __FUNCTION__ ));
 
 }
 
@@ -768,6 +815,73 @@ DNSMappingTable_Rollback
     )
 
 {
+    PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
+    PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
+    char buf[256] = {0};
+    char* token = NULL;
+    const char* s = " ";
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    GetDnsMasqFileEntry(pDnsTableEntry->MacAddress, &buf);
+
+    if(!strlen(buf))
+    {
+        strcpy(pDnsTableEntry->DnsIPv4, buf);
+        strcpy(pDnsTableEntry->DnsIPv6, buf);
+        strcpy(pDnsTableEntry->Tag, buf);
+    }
+    else
+    {
+        token = strtok(buf, s);
+        if(!token)
+        {
+            return FALSE;   
+        }
+
+        token = strtok(NULL, s);
+        if(!token)
+        {
+            return FALSE;   
+        }
+
+        token = strtok(NULL, s);
+        if(token && strstr(token, "."))
+        {
+            strcpy(pDnsTableEntry->DnsIPv4, token);
+        }
+        else
+        {
+            return FALSE;
+        }
+
+#ifdef FEATURE_IPV6
+        token = strtok(NULL, s);
+        if(token && strstr(token, ":"))
+        {
+            strcpy(pDnsTableEntry->DnsIPv6, token);
+        }
+        else
+        {
+            return FALSE;
+        }
+#else
+        strcpy(pDnsTableEntry->DnsIPv6, "");
+
+#endif
+
+        token = strtok(NULL, s);
+        if(token)
+            strcpy(pDnsTableEntry->Tag, token);
+    }
+
+
+    pDnsTableEntry->MacAddressChanged = FALSE;
+    pDnsTableEntry->DnsIPv4Changed = FALSE;
+    pDnsTableEntry->DnsIPv6Changed = FALSE;
+    pDnsTableEntry->TagChanged = FALSE;      
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT \n", __FUNCTION__ ));
 
 }
 

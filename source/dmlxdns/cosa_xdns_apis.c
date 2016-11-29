@@ -62,12 +62,18 @@
 #include "plugin_main_apis.h"
 #include "cosa_xdns_apis.h"
 
-void GetDefaultEntry(char* defaultEntry)
+
+void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
 {
-    char dnsmasqConfEntry[256] = {0};
-    char defaultMacAddress[] = "00:00:00:00:00:00";
-    //Step 1: Open text files and check that they open//
     FILE *fp1;
+    char dnsmasqConfEntry[256] = {0};
+
+    if(!macaddress || !strlen(macaddress))
+    {
+        return;
+    }
+
+
     fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
 
     if(fp1 == NULL)
@@ -78,7 +84,7 @@ void GetDefaultEntry(char* defaultEntry)
     //Step 2: Get text from original file//
     while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) !=NULL)
     {
-        if(strstr(dnsmasqConfEntry, defaultMacAddress) != NULL)
+        if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
                 strcpy(defaultEntry, dnsmasqConfEntry);
                 break;
@@ -92,6 +98,12 @@ void GetDefaultEntry(char* defaultEntry)
 void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
 {
     char dnsmasqConfEntry[256] = {0};
+
+
+    if(!macaddress || !strlen(macaddress))
+    {
+        return;
+    }
 
     unlink(DNSMASQ_SERVERS_BAK);
     //Step 1: Open text files and check that they open//
