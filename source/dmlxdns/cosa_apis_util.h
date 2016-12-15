@@ -122,4 +122,7 @@ CosaUtilGetStaticRouteTable
         StaticRoute                 **out_route
     );
 
+
+int vsystem(const char *fmt, ...);
+
 #endif

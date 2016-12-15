@@ -315,15 +315,35 @@ XDNS_Commit
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
+
+
 #ifndef FEATURE_IPV6
     if(strlen(pMyObject->DefaultDeviceDnsIPv4))
     {
+        char iprulebuf[256] = {0};
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+
+        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -4 rule add %s", iprulebuf);
+
         snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
     }
 #else
     if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
     {
+
+        char iprulebuf[256] = {0};
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+
+        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -4 rule add %s", iprulebuf);
+
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv6);
+
+        if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -6 rule add %s", iprulebuf);
+
         snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
     }
@@ -792,7 +812,18 @@ DNSMappingTable_Commit
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
+    char iprulebuf[256] = {0};
+    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+
+    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+        vsystem("ip -4 rule add %s", iprulebuf);
+
 #ifdef FEATURE_IPV6
+    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+
+    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+        vsystem("ip -6 rule add %s", iprulebuf);
+
     snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
 #else
     snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->Tag);
@@ -805,7 +836,6 @@ DNSMappingTable_Commit
     pDnsTableEntry->TagChanged = FALSE;        
 
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT  \n", __FUNCTION__ ));
-
 }
 
 ULONG
@@ -827,9 +857,12 @@ DNSMappingTable_Rollback
 
     if(!strlen(buf))
     {
-        strcpy(pDnsTableEntry->DnsIPv4, buf);
-        strcpy(pDnsTableEntry->DnsIPv6, buf);
-        strcpy(pDnsTableEntry->Tag, buf);
+        if(pDnsTableEntry->DnsIPv4Changed)
+            strcpy(pDnsTableEntry->DnsIPv4, buf);
+        if(pDnsTableEntry->DnsIPv6Changed)
+            strcpy(pDnsTableEntry->DnsIPv6, buf);
+        if(pDnsTableEntry->TagChanged)
+            strcpy(pDnsTableEntry->Tag, buf);
     }
     else
     {
@@ -848,7 +881,8 @@ DNSMappingTable_Rollback
         token = strtok(NULL, s);
         if(token && strstr(token, "."))
         {
-            strcpy(pDnsTableEntry->DnsIPv4, token);
+            if(pDnsTableEntry->DnsIPv4Changed)
+                strcpy(pDnsTableEntry->DnsIPv4, token);
         }
         else
         {
@@ -866,13 +900,17 @@ DNSMappingTable_Rollback
             return FALSE;
         }
 #else
-        strcpy(pDnsTableEntry->DnsIPv6, "");
+        if(pDnsTableEntry->DnsIPv6Changed)
+            strcpy(pDnsTableEntry->DnsIPv6, "");
 
 #endif
 
         token = strtok(NULL, s);
         if(token)
-            strcpy(pDnsTableEntry->Tag, token);
+            {
+                if(pDnsTableEntry->TagChanged)
+                    strcpy(pDnsTableEntry->Tag, token);
+            }
     }
 
 

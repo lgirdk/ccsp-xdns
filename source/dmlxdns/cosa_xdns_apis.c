@@ -485,7 +485,12 @@ CosaDmlGetSelfHealCfg(
                 token = strtok(NULL, s);
                 if(token && strstr(token, "."))
                 {
+                    char iprulebuf[256] = {0};
+                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", token);
+
                     strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
+                    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+                        vsystem("ip -4 rule add %s", iprulebuf);                
                 }
                 else
                 {
@@ -496,7 +501,13 @@ CosaDmlGetSelfHealCfg(
                 token = strtok(NULL, s);
                 if(token && strstr(token, ":"))
                 {
+                    char iprulebuf[256] = {0};
+                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", token);
+
                     strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
+
+                    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+                        vsystem("ip -6 rule add %s", iprulebuf);
                 }
                 else
                 {
@@ -547,6 +558,22 @@ CosaDmlGetSelfHealCfg(
             {
                 free(pDnsTableEntry);
                 continue;
+            }
+            else
+            {
+                    char iprulebuf[256] = {0};
+                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+
+                    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+                        vsystem("ip -4 rule add %s", iprulebuf);
+
+    #ifdef FEATURE_IPV6
+
+                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+
+                    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+                        vsystem("ip -6 rule add %s", iprulebuf);
+    #endif                    
             }
 
             index++;        
