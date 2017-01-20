@@ -89,23 +89,138 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
     if(fp1 == NULL)
     {
         fprintf(stderr,"\nError reading file\n");
+        pthread_mutex_unlock(&dnsmasqMutex);
         return;
     }
     //Step 2: Get text from original file//
-    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) !=NULL)
+    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) != NULL)
     {
         if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
                 strcpy(defaultEntry, dnsmasqConfEntry);
                 break;
             }
-
     }
 
     fclose(fp1);
 
     pthread_mutex_unlock(&dnsmasqMutex);
 
+}
+
+void RefreshResolvConfEntry()
+{
+	//1. read entries (other than dnsoverride) from resolv.conf and write to temp file
+	//2. read dnsoverride entries from dnsmasq_servers.conf and write to temp file
+	//3. clear resolv.conf and write all entries from temp file to resolv.conf
+
+	printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() enter\n");
+
+    pthread_mutex_lock(&dnsmasqMutex);
+
+    char dnsmasqConfEntry[256] = {0};
+    char resolvConfEntry[256] = {0};
+
+    unlink(DNSMASQ_SERVERS_BAK);
+
+    //Open text files and check that they open//
+    FILE *fp1 = NULL, *fp2 = NULL, *fp3 = NULL;
+
+    fp1 = fopen(RESOLV_CONF,"r");
+    if(fp1 == NULL)
+	{
+		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'r') Error !!\n");
+		pthread_mutex_unlock(&dnsmasqMutex);
+		return;
+    }
+
+    fp2 = fopen(DNSMASQ_SERVERS_BAK ,"a");
+    if(fp2 == NULL)
+	{
+		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'a') Error !!\n");
+    fclose(fp1);
+		pthread_mutex_unlock(&dnsmasqMutex);
+		return;
+	}
+
+    fp3 = fopen(DNSMASQ_SERVERS_CONF,"r");
+    if(fp3 == NULL)
+	{
+		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_CONF, 'r') Error !!\n");
+		fclose(fp1);
+		fclose(fp2);
+		pthread_mutex_unlock(&dnsmasqMutex);
+		return;
+	}
+
+
+    //Get entries (other than dnsoverride) from resolv.conf file//
+
+    printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() reading RESOLV_CONF:\n");
+    while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
+    {
+   	    printf("resolvConfEntry: \"%s\"", resolvConfEntry);
+   	    if ( strstr(resolvConfEntry, "dnsoverride"))
+		{
+    	          	printf("- ignore dnsoverride entry\n");
+			continue;
+		}
+    	// write non dnsoverride entries to temp file
+        fprintf(fp2, "%s", resolvConfEntry);
+    }
+
+    // Get dnsoverride entries from dnsmasq_servers.conf file
+    printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() reading DNSMASQ_SERVERS_CONF:\n");
+     while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp3) != NULL)
+    {
+    	 printf("dnsmasqConfEntry: '%s'", dnsmasqConfEntry);
+    	 if ( !strstr(dnsmasqConfEntry, "dnsoverride"))
+        {
+    	   printf("- ignore non-dnsoverride entry\n");
+           continue;
+        }
+
+        // write dnsoverride entries to tmp file
+	fprintf(fp2, "%s", dnsmasqConfEntry);
+    }
+
+    // at this point the temp file has entries from resolv.conf and dnsmasq_server.conf
+    // close all files and reopen to read from temp and write to resolv.conf
+    fclose(fp1); fp1 = NULL;
+    fclose(fp2); fp2 = NULL;
+    fclose(fp3); fp3 = NULL;
+
+    fp1 = fopen(RESOLV_CONF,"w");
+    if(fp1 == NULL)
+	{
+		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'w') Error !!\n");
+		pthread_mutex_unlock(&dnsmasqMutex);
+		return;
+	}
+
+    fp2 = fopen(DNSMASQ_SERVERS_BAK ,"r");
+    if(fp2 == NULL)
+	{
+		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
+		fclose(fp1);
+    		pthread_mutex_unlock(&dnsmasqMutex);
+		return;
+	}
+
+    //copy entries from temp file to resolv.conf file//
+    printf("## CcspXDNS RefreshResolvConfEntry() reading temp file and writing to resolv.conf:\n");
+	while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp2) != NULL)
+	{
+		printf("## CcspXDNS read and write: '%s' \n", resolvConfEntry);
+		// write to resolv.conf file
+		fprintf(fp1, "%s", resolvConfEntry);
+	}
+
+    fclose(fp1); fp1 = NULL;
+    fclose(fp2); fp2 = NULL;
+
+    pthread_mutex_unlock(&dnsmasqMutex);
+    return;
 }
 
 void RefreshDnsmasqConfEntry()
@@ -124,18 +239,18 @@ void RefreshDnsmasqConfEntry()
 
     if(fp1 == NULL || fp2 == NULL || fp3 == NULL)
     {
-        fprintf(stderr,"\nError reading file\n");
+        fprintf(stderr,"\n## RefreshDnsmasqConfEntry(): Error reading file!!\n");
         return;
     }
     //Step 2: Get text from original file//
 
     while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
     {
-
-        if(strstr(resolvConfEntry, ":") != NULL)
-            {
-            continue;
-            }
+    	//skip IPv6 entries
+        //if(strstr(resolvConfEntry, ":") != NULL)
+        //    {
+        //    continue;
+        //    }
 
         fprintf(fp2, "%s", resolvConfEntry);
     }
@@ -187,8 +302,9 @@ void RefreshDnsmasqConfEntry()
      if (i->mask & IN_CLOSE_WRITE || i->mask & IN_ATTRIB)
      {
         fprintf(stderr, "IN_CLOSE_WRITE || IN_ATTRIB");
-        sleep(5);
-        RefreshDnsmasqConfEntry();
+        //sleep(5);
+        //RefreshDnsmasqConfEntry();
+        RefreshResolvConfEntry();
      } 
 
      fprintf(stderr, "\n");
@@ -293,6 +409,9 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
 
     pthread_mutex_unlock(&dnsmasqMutex);
 
+    //CCSPXDNS - for resolv.conf merge
+    RefreshResolvConfEntry();
+
 }
 
 void AppendDnsmasqConfEntry(char* string1)
@@ -333,13 +452,13 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     int foundIPv6 = 0;
 
     //Step 1: Open text files and check that they open//
-    FILE *fp1, *fp2;
+    FILE *fp1 = NULL, *fp2 = NULL;
     fp1 = fopen(RESOLV_CONF,"r");
-    fp2 = fopen(DNSMASQ_SERVERS_CONF ,"w");
-
-    if(fp1 == NULL || fp2 == NULL)
+    //fp2 = fopen(DNSMASQ_SERVERS_CONF ,"w"); //MURUGAN
+    //if(fp1 == NULL || fp2 == NULL)
+    if(fp1 == NULL)
     {
-        fprintf(stderr,"\nError reading file\n");
+        fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file RESOLV_CONF\n");
         return;
     }
     //Step 2: Get text from original file//
@@ -349,10 +468,11 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     		{
                 strcpy(buf, resolvConfEntry);
 
-                if(strstr(resolvConfEntry, ":") != NULL)
-                {
-                    continue;
-                }
+                //skip IPv6 entries
+                //if(strstr(resolvConfEntry, ":") != NULL)
+                //{
+                //    continue;
+                //}
 
                 char *newline = strchr( buf, '\n' );
                 if ( newline )
@@ -383,11 +503,12 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
                 }
     		}
 
-        fprintf(fp2, "%s", resolvConfEntry);
+    	/* MURUGAN - dont copy resolv.conf entries to dnsmasq_servers.conf
+         * fprintf(fp2, "%s", resolvConfEntry); */
     }
 
     fclose(fp1);
-	fclose(fp2);
+	//fclose(fp2); //MURUGAN
 	/* get the first token */
 
     strcpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4);
@@ -401,6 +522,10 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
     AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
 #endif
+
+    //MURUGAN - for resolv.conf merge
+    RefreshResolvConfEntry();
+
 }
 
 void FillEntryInList(PCOSA_DATAMODEL_XDNS pXdns, PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY dnsTableEntry)
@@ -441,7 +566,9 @@ CosaDmlGetSelfHealCfg(
 
     if( access( DNSMASQ_SERVERS_CONF, F_OK ) != -1 )
     {
-        RefreshDnsmasqConfEntry();
+    	/* MURUGAN - for resolv.conf changes */
+        //RefreshDnsmasqConfEntry();
+    	RefreshResolvConfEntry();
     } 
     else 
     {
@@ -451,6 +578,8 @@ CosaDmlGetSelfHealCfg(
     }
 
     pthread_mutex_lock(&dnsmasqMutex);
+
+    /* MURUGAN - below logic is to add ip rule for each dns upstream server */
 
     if ( (fp_dnsmasq_conf=fopen(DNSMASQ_SERVERS_CONF, "r")) != NULL )
     {
@@ -535,7 +664,7 @@ CosaDmlGetSelfHealCfg(
 
             /*
             Sample:
-            dnsoverride AA:BB:CC:DD:EE:FF 1.2.3.4 ArbitrarySting
+            dnsoverride AA:BB:CC:DD:EE:FF 1.2.3.4 2001:xxx:xxx:xxx ArbitrarySting
             */
 
             ret = sscanf(buf, XDNS_ENTRY_FORMAT,
@@ -554,7 +683,8 @@ CosaDmlGetSelfHealCfg(
     */
 
 
-            if(ret < 3)
+            // format: "dnsoverride <mac> <ipv4> <ipv6> [<tag>]" - only tag is optional
+            if(ret < 4)
             {
                 free(pDnsTableEntry);
                 continue;
@@ -689,11 +819,13 @@ CosaXDNSInitialize
 	
     pMyObject->pMappingContainer = CosaDmlGetSelfHealCfg((ANSC_HANDLE)pMyObject);
 
+/* MURUGAN - no need to monitor resolv.conf file
     if (pthread_create(&tid, NULL, MonitorResolvConfForChanges, NULL))
     {
         CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : Failed to Start Thread to start MonitorResolvConfForChanges  \n", __FUNCTION__ ));
         return ANSC_STATUS_FAILURE;
     }
+*/
 
     return returnStatus;
 }

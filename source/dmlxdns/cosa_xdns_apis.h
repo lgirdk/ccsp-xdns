@@ -24,6 +24,9 @@
 #define DNSMASQ_SERVERS_CONF "/nvram/dnsmasq_servers.conf"
 #define DNSMASQ_SERVERS_BAK "/nvram/dnsmasq_servers.bak"
 
+//mandate Dual stack by turning on this
+#define FEATURE_IPV6 1
+
 #ifdef FEATURE_IPV6
 #define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s %63s"
 #else
