@@ -683,10 +683,15 @@ DNSMappingTable_SetParamStringValue
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
     if( AnscEqualString(ParamName, "MacAddress", TRUE))
     {
-
+    	// if MacAddress is already present, don't update.
         if(!strlen(pDnsTableEntry->MacAddress))
         {
+        	UCHAR *p = NULL;
             AnscCopyString(pDnsTableEntry->MacAddress,strValue);
+            // convert MAC to lower case before writing to dml
+            for (p = pDnsTableEntry->MacAddress; *p != '\0'; p++)
+                *p = (char)tolower(*p);
+
             pDnsTableEntry->MacAddressChanged = TRUE;
             ret =  TRUE;            
         }

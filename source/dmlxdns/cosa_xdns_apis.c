@@ -65,7 +65,7 @@
 #include <limits.h>
 #include "ccsp_xdnsLog_wrapper.h"
 
-static pthread_mutex_t dnsmasqMutex = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t dnsmasqMutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
 
@@ -82,14 +82,14 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
         return;
     }
 
-    pthread_mutex_lock(&dnsmasqMutex);
+    //pthread_mutex_lock(&dnsmasqMutex);
 
     fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
 
     if(fp1 == NULL)
     {
         fprintf(stderr,"\nError reading file\n");
-        pthread_mutex_unlock(&dnsmasqMutex);
+        //pthread_mutex_unlock(&dnsmasqMutex);
         return;
     }
     //Step 2: Get text from original file//
@@ -104,7 +104,7 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
 
     fclose(fp1);
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
 
 }
 
@@ -114,9 +114,7 @@ void RefreshResolvConfEntry()
 	//2. read dnsoverride entries from dnsmasq_servers.conf and write to temp file
 	//3. clear resolv.conf and write all entries from temp file to resolv.conf
 
-	printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() enter\n");
-
-    pthread_mutex_lock(&dnsmasqMutex);
+    //pthread_mutex_lock(&dnsmasqMutex);
 
     char dnsmasqConfEntry[256] = {0};
     char resolvConfEntry[256] = {0};
@@ -130,7 +128,7 @@ void RefreshResolvConfEntry()
     if(fp1 == NULL)
 	{
 		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'r') Error !!\n");
-		pthread_mutex_unlock(&dnsmasqMutex);
+		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
     }
 
@@ -138,8 +136,8 @@ void RefreshResolvConfEntry()
     if(fp2 == NULL)
 	{
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'a') Error !!\n");
-    fclose(fp1);
-		pthread_mutex_unlock(&dnsmasqMutex);
+		fclose(fp1);
+		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
@@ -149,39 +147,36 @@ void RefreshResolvConfEntry()
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_CONF, 'r') Error !!\n");
 		fclose(fp1);
 		fclose(fp2);
-		pthread_mutex_unlock(&dnsmasqMutex);
+		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
 
     //Get entries (other than dnsoverride) from resolv.conf file//
 
-    printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() reading RESOLV_CONF:\n");
     while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
     {
-   	    printf("resolvConfEntry: \"%s\"", resolvConfEntry);
    	    if ( strstr(resolvConfEntry, "dnsoverride"))
 		{
-    	          	printf("- ignore dnsoverride entry\n");
 			continue;
 		}
+
+   	    printf("copy \"%s\" from %s to BAK", resolvConfEntry, RESOLV_CONF);
     	// write non dnsoverride entries to temp file
         fprintf(fp2, "%s", resolvConfEntry);
     }
 
     // Get dnsoverride entries from dnsmasq_servers.conf file
-    printf("## MURUGAN CcspXDNS RefreshResolvConfEntry() reading DNSMASQ_SERVERS_CONF:\n");
-     while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp3) != NULL)
+    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp3) != NULL)
     {
-    	 printf("dnsmasqConfEntry: '%s'", dnsmasqConfEntry);
-    	 if ( !strstr(dnsmasqConfEntry, "dnsoverride"))
-        {
-    	   printf("- ignore non-dnsoverride entry\n");
-           continue;
-        }
+    	if ( !strstr(dnsmasqConfEntry, "dnsoverride"))
+    	{
+    		continue;
+    	}
 
-        // write dnsoverride entries to tmp file
-	fprintf(fp2, "%s", dnsmasqConfEntry);
+    	printf("copy \"%s\" from %s to BAK", dnsmasqConfEntry, DNSMASQ_SERVERS_CONF);
+    	// write dnsoverride entries to tmp file
+    	fprintf(fp2, "%s", dnsmasqConfEntry);
     }
 
     // at this point the temp file has entries from resolv.conf and dnsmasq_server.conf
@@ -194,7 +189,7 @@ void RefreshResolvConfEntry()
     if(fp1 == NULL)
 	{
 		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'w') Error !!\n");
-		pthread_mutex_unlock(&dnsmasqMutex);
+		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
@@ -203,15 +198,14 @@ void RefreshResolvConfEntry()
 	{
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
 		fclose(fp1);
-    		pthread_mutex_unlock(&dnsmasqMutex);
+    	//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
     //copy entries from temp file to resolv.conf file//
-    printf("## CcspXDNS RefreshResolvConfEntry() reading temp file and writing to resolv.conf:\n");
 	while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp2) != NULL)
 	{
-		printf("## CcspXDNS read and write: '%s' \n", resolvConfEntry);
+		printf("## CcspXDNS write to resolv.conf : '%s' \n", resolvConfEntry);
 		// write to resolv.conf file
 		fprintf(fp1, "%s", resolvConfEntry);
 	}
@@ -219,13 +213,14 @@ void RefreshResolvConfEntry()
     fclose(fp1); fp1 = NULL;
     fclose(fp2); fp2 = NULL;
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
     return;
 }
 
+/*
 void RefreshDnsmasqConfEntry()
 {
-    pthread_mutex_lock(&dnsmasqMutex);
+    //pthread_mutex_lock(&dnsmasqMutex);
     char dnsmasqConfEntry[256] = {0};
     char resolvConfEntry[256] = {0};
 
@@ -272,10 +267,10 @@ void RefreshDnsmasqConfEntry()
     fclose(fp2);
     rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF);
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
 
 }
-
+*/
 
  static void ResolvConfFileEvent(struct inotify_event *i)
  {
@@ -369,8 +364,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
 {
     char dnsmasqConfEntry[256] = {0};
 
-    pthread_mutex_lock(&dnsmasqMutex);
-
+    //pthread_mutex_lock(&dnsmasqMutex);
 
     if(!macaddress || !strlen(macaddress))
     {
@@ -378,19 +372,28 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     }
 
     unlink(DNSMASQ_SERVERS_BAK);
-    //Step 1: Open text files and check that they open//
-    FILE *fp1, *fp2;
-    fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
-    fp2 = fopen(DNSMASQ_SERVERS_BAK ,"a");
 
-    if(fp1 == NULL || fp2 == NULL)
+    //Step 1: Open text files and check that they open//
+    FILE *fp1 = NULL, *fp2 = NULL;
+
+    fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
+    if(fp1 == NULL)
     {
-        fprintf(stderr,"\nError reading file\n");
+        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Error reading file %s\n", DNSMASQ_SERVERS_CONF);
         return;
     }
-    //Step 2: Get text from original file//
-    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) !=NULL)
+
+    fp2 = fopen(DNSMASQ_SERVERS_BAK ,"a");
+    if(fp2 == NULL)
     {
+        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Error reading file %s\n", DNSMASQ_SERVERS_BAK);
+        return;
+    }
+
+    //Step 2: Get text from original file//
+    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp1) != NULL)
+    {
+    	// skip entry that match the mac addr, copy the rest to BAK
         if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
                 continue;
@@ -399,6 +402,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
         fprintf(fp2, "%s", dnsmasqConfEntry);
     }
 
+    // now copy the new entry for that mac (if not NULL)
     if(overrideEntry)
         fprintf(fp2, "%s", overrideEntry);
 
@@ -407,7 +411,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     fclose(fp2);
     rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF);
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
 
     //CCSPXDNS - for resolv.conf merge
     RefreshResolvConfEntry();
@@ -418,7 +422,7 @@ void AppendDnsmasqConfEntry(char* string1)
 {
     FILE *fp2;
 
-    pthread_mutex_lock(&dnsmasqMutex);
+    //pthread_mutex_lock(&dnsmasqMutex);
 
 
     fp2 = fopen(DNSMASQ_SERVERS_CONF ,"a");
@@ -432,7 +436,7 @@ void AppendDnsmasqConfEntry(char* string1)
     fprintf(fp2, "%s", string1);
     fclose(fp2);
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
 
 }
 
@@ -454,11 +458,9 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     //Step 1: Open text files and check that they open//
     FILE *fp1 = NULL, *fp2 = NULL;
     fp1 = fopen(RESOLV_CONF,"r");
-    //fp2 = fopen(DNSMASQ_SERVERS_CONF ,"w"); //MURUGAN
-    //if(fp1 == NULL || fp2 == NULL)
     if(fp1 == NULL)
     {
-        fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file RESOLV_CONF\n");
+        fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file %s\n", RESOLV_CONF);
         return;
     }
     //Step 2: Get text from original file//
@@ -508,7 +510,6 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     }
 
     fclose(fp1);
-	//fclose(fp2); //MURUGAN
 	/* get the first token */
 
     strcpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4);
@@ -523,7 +524,7 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
 #endif
 
-    //MURUGAN - for resolv.conf merge
+    //update entries to resolv.conf
     RefreshResolvConfEntry();
 
 }
@@ -577,7 +578,7 @@ CosaDmlGetSelfHealCfg(
         return pMappingContainer;
     }
 
-    pthread_mutex_lock(&dnsmasqMutex);
+    //pthread_mutex_lock(&dnsmasqMutex);
 
     /* MURUGAN - below logic is to add ip rule for each dns upstream server */
 
@@ -720,7 +721,7 @@ CosaDmlGetSelfHealCfg(
 
     fclose(fp_dnsmasq_conf);
 
-    pthread_mutex_unlock(&dnsmasqMutex);
+    //pthread_mutex_unlock(&dnsmasqMutex);
 
 	return pMappingContainer;
 }
