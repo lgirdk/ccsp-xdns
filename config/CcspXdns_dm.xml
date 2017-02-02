@@ -65,7 +65,7 @@
             <object>
                 <name>DNSMappingTable</name>
                 <objectType>writableTable</objectType>
-                <maxInstance>128</maxInstance>
+                <maxInstance>512</maxInstance>
                 <functions>
                     <func_GetEntryCount>DNSMappingTable_GetEntryCount</func_GetEntryCount>
                     <func_GetEntry>DNSMappingTable_GetEntry</func_GetEntry>
