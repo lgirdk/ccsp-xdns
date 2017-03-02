@@ -30,4 +30,4 @@ hardware_platform = i686-linux-gnu
 bin_PROGRAMS = CcspXdnsSsp
 CcspXdnsSsp_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/dmlxdns -I$(top_srcdir)/source/XdnsSsp $(CPPFLAGS)
 CcspXdnsSsp_SOURCES = ssp_messagebus_interface.c ssp_main.c ssp_action.c ssp_messagebus_interface_priv.c
-CcspXdnsSsp_LDFLAGS = -lccsp_common -ldl -rdynamic
+CcspXdnsSsp_LDFLAGS = -lccsp_common -ldl -lsyscfg -rdynamic

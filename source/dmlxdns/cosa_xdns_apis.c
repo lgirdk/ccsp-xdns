@@ -59,6 +59,7 @@
         01/11/2011    initial revision.
 
 **************************************************************************/
+#include <syscfg/syscfg.h>
 #include "plugin_main_apis.h"
 #include "cosa_xdns_apis.h"
 #include <sys/inotify.h>
@@ -81,8 +82,6 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
     {
         return;
     }
-
-    //pthread_mutex_lock(&dnsmasqMutex);
 
     fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
 
@@ -110,12 +109,25 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
 
 void RefreshResolvConfEntry()
 {
-	//1. read entries (other than dnsoverride) from resolv.conf and write to temp file
-	//2. read dnsoverride entries from dnsmasq_servers.conf and write to temp file
-	//3. clear resolv.conf and write all entries from temp file to resolv.conf
+	//0. Determine if XDNS is ON, if only ON then copy entries to RESOLV_CONF from DNSMASQ_SERVERS_CONF :
+	//1. read non-dnsoverride entries from RESOLV_CONF and write to temp file
+	//2. read dnsoverride entries from DNSMASQ_SERVERS_CONF and write to temp file
+	//3. clear resolv.conf and write all entries from temp file to RESOLV_CONF
 
-    //pthread_mutex_lock(&dnsmasqMutex);
+	char xdnsflag[20] = {0};
+	int rc = syscfg_get(NULL, "X_RDKCENTRAL-COM_XDNS", xdnsflag, sizeof(xdnsflag));
+	if (0 != rc || '\0' == xdnsflag[0] ) //if flag not found
+	{
+		printf("### XDNS - Never enabled. CcspXDNS Not writing to RESOLV_CONF ### \n");
+	}
+	else if(0 == strcmp("0", xdnsflag)) //flag set to false
+	{
+		printf("### XDNS - Disabled. CcspXDNS Not writing to RESOLV_CONF  ###\n");
+	}
+	else if (0 == strcmp("1", xdnsflag)) //if xDNS set to true
+	{
 
+    printf("### XDNS flag is enabled. CcspXDNS is syncing config to RESOLV_CONF  ###\n");
     char dnsmasqConfEntry[256] = {0};
     char resolvConfEntry[256] = {0};
 
@@ -128,7 +140,6 @@ void RefreshResolvConfEntry()
     if(fp1 == NULL)
 	{
 		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'r') Error !!\n");
-		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
     }
 
@@ -137,7 +148,6 @@ void RefreshResolvConfEntry()
 	{
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'a') Error !!\n");
 		fclose(fp1);
-		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
@@ -147,7 +157,6 @@ void RefreshResolvConfEntry()
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_CONF, 'r') Error !!\n");
 		fclose(fp1);
 		fclose(fp2);
-		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
@@ -161,7 +170,6 @@ void RefreshResolvConfEntry()
 			continue;
 		}
 
-   	    printf("copy \"%s\" from %s to BAK", resolvConfEntry, RESOLV_CONF);
     	// write non dnsoverride entries to temp file
         fprintf(fp2, "%s", resolvConfEntry);
     }
@@ -174,8 +182,38 @@ void RefreshResolvConfEntry()
     		continue;
     	}
 
-    	printf("copy \"%s\" from %s to BAK", dnsmasqConfEntry, DNSMASQ_SERVERS_CONF);
-    	// write dnsoverride entries to tmp file
+    	char tempEntry[256] = {0};
+    	strcpy(tempEntry, dnsmasqConfEntry);
+
+    	//validate
+    	if(!strtok(tempEntry, " \t\n\r")) //dnsoverride token
+    		continue;
+
+    	char *macaddr = NULL, *srvaddr4 = NULL;
+#ifdef FEATURE_IPV6
+    	char *srvaddr6 = NULL;
+#endif
+
+    	if(!(macaddr = strtok(NULL, " \t\n\r")))
+    		continue;
+
+    	if(!(srvaddr4 = strtok(NULL, " \t\n\r")))
+    		continue;
+
+    	struct sockaddr_in sa;
+    	if (inet_pton(AF_INET, srvaddr4, &(sa.sin_addr)) != 1)
+    		continue;
+
+#ifdef FEATURE_IPV6
+    	if(!(srvaddr6 = strtok(NULL, " \t\n\r")))
+    		continue;
+
+    	struct sockaddr_in6 sa6;
+    	if (inet_pton(AF_INET6, srvaddr6, &(sa6.sin6_addr)) != 1)
+    		continue;
+#endif
+
+    	// write valid dnsoverride entries to tmp file
     	fprintf(fp2, "%s", dnsmasqConfEntry);
     }
 
@@ -189,7 +227,6 @@ void RefreshResolvConfEntry()
     if(fp1 == NULL)
 	{
 		fprintf(stderr,"## CcspXDNS fopen(RESOLV_CONF, 'w') Error !!\n");
-		//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
@@ -198,14 +235,12 @@ void RefreshResolvConfEntry()
 	{
 		fprintf(stderr,"## CcspXDNS fopen(DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
 		fclose(fp1);
-    	//pthread_mutex_unlock(&dnsmasqMutex);
 		return;
 	}
 
     //copy entries from temp file to resolv.conf file//
 	while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp2) != NULL)
 	{
-		printf("## CcspXDNS write to resolv.conf : '%s' \n", resolvConfEntry);
 		// write to resolv.conf file
 		fprintf(fp1, "%s", resolvConfEntry);
 	}
@@ -213,64 +248,10 @@ void RefreshResolvConfEntry()
     fclose(fp1); fp1 = NULL;
     fclose(fp2); fp2 = NULL;
 
-    //pthread_mutex_unlock(&dnsmasqMutex);
+	}
     return;
 }
 
-/*
-void RefreshDnsmasqConfEntry()
-{
-    //pthread_mutex_lock(&dnsmasqMutex);
-    char dnsmasqConfEntry[256] = {0};
-    char resolvConfEntry[256] = {0};
-
-    unlink(DNSMASQ_SERVERS_BAK);
-    //Step 1: Open text files and check that they open//
-    FILE *fp1 = NULL, *fp2 = NULL, *fp3 = NULL;
-
-    fp1 = fopen(RESOLV_CONF,"r");
-    fp2 = fopen(DNSMASQ_SERVERS_BAK ,"a");
-    fp3 = fopen(DNSMASQ_SERVERS_CONF,"r");
-
-    if(fp1 == NULL || fp2 == NULL || fp3 == NULL)
-    {
-        fprintf(stderr,"\n## RefreshDnsmasqConfEntry(): Error reading file!!\n");
-        return;
-    }
-    //Step 2: Get text from original file//
-
-    while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
-    {
-    	//skip IPv6 entries
-        //if(strstr(resolvConfEntry, ":") != NULL)
-        //    {
-        //    continue;
-        //    }
-
-        fprintf(fp2, "%s", resolvConfEntry);
-    }
-
-    while(fgets(dnsmasqConfEntry, sizeof(dnsmasqConfEntry), fp3) !=NULL)
-    {
-        if ( !strstr(dnsmasqConfEntry, "dnsoverride"))
-        {
-            continue;
-        }
-
-        fprintf(fp2, "%s", dnsmasqConfEntry);
-    }
-
-    fclose(fp1);
-    fclose(fp3);
-
-    unlink(DNSMASQ_SERVERS_CONF);
-    fclose(fp2);
-    rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF);
-
-    //pthread_mutex_unlock(&dnsmasqMutex);
-
-}
-*/
 
  static void ResolvConfFileEvent(struct inotify_event *i)
  {
@@ -411,19 +392,15 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     fclose(fp2);
     rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF);
 
-    //pthread_mutex_unlock(&dnsmasqMutex);
-
-    //CCSPXDNS - for resolv.conf merge
+	// update to resolv.conf file
     RefreshResolvConfEntry();
 
+	return;
 }
 
 void AppendDnsmasqConfEntry(char* string1)
 {
     FILE *fp2;
-
-    //pthread_mutex_lock(&dnsmasqMutex);
-
 
     fp2 = fopen(DNSMASQ_SERVERS_CONF ,"a");
 
@@ -436,11 +413,10 @@ void AppendDnsmasqConfEntry(char* string1)
     fprintf(fp2, "%s", string1);
     fclose(fp2);
 
-    //pthread_mutex_unlock(&dnsmasqMutex);
-
+	return;
 }
 
-
+// Create Default dnsoverride entry (00:00:00:00:00:00) using nameserver entries from resolv.conf file
 void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
 {
     char resolvConfEntry[256] = {0};
@@ -455,38 +431,32 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     int foundIPv4 = 0;
     int foundIPv6 = 0;
 
-    //Step 1: Open text files and check that they open//
-    FILE *fp1 = NULL, *fp2 = NULL;
+	//Step 1: Open RESOLV_CONF //
+	FILE *fp1 = NULL;
     fp1 = fopen(RESOLV_CONF,"r");
     if(fp1 == NULL)
     {
-        fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file %s\n", RESOLV_CONF);
+		fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file %s \n", RESOLV_CONF);
         return;
     }
-    //Step 2: Get text from original file//
-    while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) !=NULL)
+	//Step 2: scan RESOLV_CONF for first IPv4 & IPv6 nameserver entries. We will use this to create default dnsoverride entry//
+	while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) != NULL)
     {
     	if(strstr(resolvConfEntry, "nameserver") != NULL)
     		{
                 strcpy(buf, resolvConfEntry);
 
-                //skip IPv6 entries
-                //if(strstr(resolvConfEntry, ":") != NULL)
-                //{
-                //    continue;
-                //}
-
                 char *newline = strchr( buf, '\n' );
                 if ( newline )
                     *newline = 0;
 
-                token = strtok(buf, s);
+			token = strtok(buf, s); //first token: nameserver
                 if(!token)
                 {
                     continue;   
                 }                 
 
-                token = strtok(NULL, s);
+			token = strtok(NULL, s); // token after nameserver : ipv4 or v6 addr
                 if(!token)
                 {
                     continue;   
@@ -504,29 +474,40 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
                     strcpy(tokenIPv6, token);
                 }
     		}
-
-    	/* MURUGAN - dont copy resolv.conf entries to dnsmasq_servers.conf
-         * fprintf(fp2, "%s", resolvConfEntry); */
     }
 
     fclose(fp1);
-	/* get the first token */
 
+	//store values read from resolv.conf to TR181 object, could be empty
     strcpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4);
     strcpy(pMyObject->DefaultDeviceDnsIPv6, tokenIPv6);
     strcpy(pMyObject->DefaultDeviceTag, "empty");
 
 #ifndef FEATURE_IPV6
+	/* IPv4 ONLY MODE : Create xDNS default dnsoverride entry */
+	if(foundIPv4)
+	{
 	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", tokenIPv4, pMyObject->DefaultDeviceTag);
 	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
+	}
 #else
+	/* Create xDNS default dnsoverride entry by reading both IPv4 and IPv6 */
+	if(foundIPv4 && foundIPv6)
     snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
+	//else if(foundIPv4)	// !foundIPv6
+	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, "::", pMyObject->DefaultDeviceTag);
+	//else if(foundIPv6)	// !foundIPv4
+	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", "0.0.0.0", tokenIPv6, pMyObject->DefaultDeviceTag);
+	else // both entries not found in resolv.conf, we cannot create default dnsoverride.
+		return;
+
     AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
 #endif
 
     //update entries to resolv.conf
     RefreshResolvConfEntry();
 
+	return;
 }
 
 void FillEntryInList(PCOSA_DATAMODEL_XDNS pXdns, PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY dnsTableEntry)
@@ -567,13 +548,13 @@ CosaDmlGetSelfHealCfg(
 
     if( access( DNSMASQ_SERVERS_CONF, F_OK ) != -1 )
     {
-    	/* MURUGAN - for resolv.conf changes */
-        //RefreshDnsmasqConfEntry();
+    	printf("CosaDmlGetSelfHealCfg: Calling RefreshResolvConfEntry");
     	RefreshResolvConfEntry();
     } 
     else 
     {
         pMappingContainer->XDNSEntryCount = 0;
+       	printf("CosaDmlGetSelfHealCfg: Calling CreateDnsmasqServerConf");
         CreateDnsmasqServerConf(pMyObject);
         return pMappingContainer;
     }
@@ -581,6 +562,7 @@ CosaDmlGetSelfHealCfg(
     //pthread_mutex_lock(&dnsmasqMutex);
 
     /* MURUGAN - below logic is to add ip rule for each dns upstream server */
+  	printf("CosaDmlGetSelfHealCfg: Calling logic to add ip rule for each dns upstream server");
 
     if ( (fp_dnsmasq_conf=fopen(DNSMASQ_SERVERS_CONF, "r")) != NULL )
     {
@@ -717,7 +699,7 @@ CosaDmlGetSelfHealCfg(
 
     pMappingContainer->XDNSEntryCount = index;
 
-    //fprintf(stderr, "index %d\n", index);
+    printf("CosaDmlGetSelfHealCfg XDNSEntryCount %d\n", index);
 
     fclose(fp_dnsmasq_conf);
 
@@ -817,7 +799,14 @@ CosaXDNSInitialize
     AnscSListInitializeHeader( &pMyObject->XDNSDeviceList );
     pMyObject->MaxInstanceNumber        = 0;
     pMyObject->ulXDNSNextInstanceNumber   = 1;
-	
+
+    // Initialize syscfg to make syscfg calls
+    if (0 != syscfg_init())
+    {
+    	CcspXdnsConsoleTrace(("CcspXDNSInitialize Error: syscfg_init() failed!! \n"));
+    }
+
+    printf("#### XDNS - calling CosaXDNSInitialize");
     pMyObject->pMappingContainer = CosaDmlGetSelfHealCfg((ANSC_HANDLE)pMyObject);
 
 /* MURUGAN - no need to monitor resolv.conf file
@@ -827,6 +816,7 @@ CosaXDNSInitialize
         return ANSC_STATUS_FAILURE;
     }
 */
+    printf("#### XDNS - CosaXDNSInitialize done. return %d", returnStatus);
 
     return returnStatus;
 }
