@@ -360,7 +360,14 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     fp1 = fopen(DNSMASQ_SERVERS_CONF,"r");
     if(fp1 == NULL)
     {
-        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Error reading file %s\n", DNSMASQ_SERVERS_CONF);
+        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - File Not Created %s\n", DNSMASQ_SERVERS_CONF);
+        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Create Entry with %s\n", overrideEntry);
+        // This is the case where the DNSMASQ_SERVERS_CONF file is not created if
+        // during bootup the IPv4 or IPv6 stack does not come up before
+        // XDNS component is started. Here we will create the File and add
+        // the entry which is being replced.
+        AppendDnsmasqConfEntry(overrideEntry);
+        RefreshResolvConfEntry();
         return;
     }
 
