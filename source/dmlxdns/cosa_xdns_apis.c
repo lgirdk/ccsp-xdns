@@ -375,6 +375,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     if(fp2 == NULL)
     {
         fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Error reading file %s\n", DNSMASQ_SERVERS_BAK);
+	fclose(fp1);
         return;
     }
 
@@ -648,6 +649,7 @@ CosaDmlGetSelfHealCfg(
             {
                 CcspTraceWarning(("%s resource allocation failed\n",__FUNCTION__));
                 fclose(fp_dnsmasq_conf);
+		fp_dnsmasq_conf = NULL;
                 unlink(DNSMASQ_SERVERS_CONF);
                 break;
             }
@@ -702,13 +704,15 @@ CosaDmlGetSelfHealCfg(
             FillEntryInList(pMyObject, pDnsTableEntry);
         }
 
+
     }
 
     pMappingContainer->XDNSEntryCount = index;
 
     printf("CosaDmlGetSelfHealCfg XDNSEntryCount %d\n", index);
-
-    fclose(fp_dnsmasq_conf);
+    if(fp_dnsmasq_conf) {
+	fclose(fp_dnsmasq_conf);
+    }
 
     //pthread_mutex_unlock(&dnsmasqMutex);
 
