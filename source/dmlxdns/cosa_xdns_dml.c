@@ -324,7 +324,7 @@ XDNS_Commit
         snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
@@ -337,12 +337,12 @@ XDNS_Commit
         snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv6);
 
         if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -6 rule add %s", iprulebuf);
+            v_secure_system("ip -6 rule add %s", iprulebuf);
 
         snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
         ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
@@ -821,13 +821,13 @@ DNSMappingTable_Commit
     snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
 
     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-        vsystem("ip -4 rule add %s", iprulebuf);
+        v_secure_system("ip -4 rule add %s", iprulebuf);
 
 #ifdef FEATURE_IPV6
     snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
 
     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-        vsystem("ip -6 rule add %s", iprulebuf);
+        v_secure_system("ip -6 rule add %s", iprulebuf);
 
     snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
 #else
