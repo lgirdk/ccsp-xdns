@@ -610,7 +610,7 @@ CosaDmlGetSelfHealCfg(
 
                     strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
                     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        v_secure_system("ip -4 rule add %s", iprulebuf);                
+                        vsystem("ip -4 rule add %s", iprulebuf);                
                 }
                 else
                 {
@@ -627,7 +627,7 @@ CosaDmlGetSelfHealCfg(
                     strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
 
                     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        v_secure_system("ip -6 rule add %s", iprulebuf);
+                        vsystem("ip -6 rule add %s", iprulebuf);
                 }
                 else
                 {
@@ -687,14 +687,14 @@ CosaDmlGetSelfHealCfg(
                     snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
 
                     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        v_secure_system("ip -4 rule add %s", iprulebuf);
+                        vsystem("ip -4 rule add %s", iprulebuf);
 
     #ifdef FEATURE_IPV6
 
                     snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
 
                     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        v_secure_system("ip -6 rule add %s", iprulebuf);
+                        vsystem("ip -6 rule add %s", iprulebuf);
     #endif                    
             }
 
