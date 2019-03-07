@@ -24,6 +24,8 @@
 #define DNSMASQ_SERVERS_CONF "/nvram/dnsmasq_servers.conf"
 #define DNSMASQ_SERVERS_BAK "/nvram/dnsmasq_servers.bak"
 
+#define MAX_BUF_SIZE 256
+#define MAX_XDNS_SERV 2
 //mandate Dual stack by turning on this
 #define FEATURE_IPV6 1
 
@@ -93,6 +95,10 @@ COSA_DML_MAPPING_CONTAINER,  *PCOSA_DML_MAPPING_CONTAINER;
     BOOL                        DefaultDeviceDnsIPv4Changed;                                         \
     UCHAR                       DefaultDeviceDnsIPv6[256];                                         \
     BOOL                        DefaultDeviceDnsIPv6Changed;                                         \
+    UCHAR                       DefaultSecondaryDeviceDnsIPv4[256];                                         \
+    BOOL                        DefaultSecondaryDeviceDnsIPv4Changed;                                         \
+    UCHAR                       DefaultSecondaryDeviceDnsIPv6[256];                                         \
+    BOOL                        DefaultSecondaryDeviceDnsIPv6Changed;                                         \
     UCHAR                       DefaultDeviceTag[256];                                            \   
     BOOL                        DefaultDeviceTagChanged;                                         \
     SLIST_HEADER                XDNSDeviceList;                                        \
@@ -134,4 +140,4 @@ CosaXDNSRemove
     );
 
 void ResetDnsmasqConfFile();
-void AppendDnsmasqConfEntry(char* string1);
+void AppendDnsmasqConfEntry(char (*string1)[MAX_BUF_SIZE], int count);

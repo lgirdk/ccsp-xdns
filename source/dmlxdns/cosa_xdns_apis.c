@@ -81,9 +81,10 @@
 void* MonitorResolvConfForChanges(void *arg);
 
 
-void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
+void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
 {
     FILE *fp1;
+    int count=0;
     char dnsmasqConfEntry[256] = {0};
 
     if(!macaddress || !strlen(macaddress))
@@ -104,8 +105,15 @@ void GetDnsMasqFileEntry(char* macaddress, char* defaultEntry)
     {
         if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
-                strcpy(defaultEntry, dnsmasqConfEntry);
-                break;
+                strcpy(defaultEntry[count], dnsmasqConfEntry);
+          	if(count==MAX_XDNS_SERV)
+                {
+                  	break;
+                }
+          	else
+          	{
+                	count++;
+          	}
             }
     }
 
@@ -349,11 +357,10 @@ void* MonitorResolvConfForChanges(void *arg)
 }
 
 
-void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
+void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZE], int count)
 {
     char dnsmasqConfEntry[256] = {0};
-
-    //pthread_mutex_lock(&dnsmasqMutex);
+	//pthread_mutex_lock(&dnsmasqMutex);
 
     if(!macaddress || !strlen(macaddress))
     {
@@ -374,7 +381,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
         // during bootup the IPv4 or IPv6 stack does not come up before
         // XDNS component is started. Here we will create the File and add
         // the entry which is being replced.
-        AppendDnsmasqConfEntry(overrideEntry);
+        AppendDnsmasqConfEntry(overrideEntry,count);
         RefreshResolvConfEntry();
         return;
     }
@@ -400,9 +407,12 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
     }
 
     // now copy the new entry for that mac (if not NULL)
-    if(overrideEntry)
-        fprintf(fp2, "%s", overrideEntry);
-
+    int i;
+    for( i=0; i< count;i++)
+    {
+    if(overrideEntry[i])
+        fprintf(fp2, "%s", overrideEntry[i]);
+    }
     fclose(fp1);
     unlink(DNSMASQ_SERVERS_CONF);
     fclose(fp2);
@@ -414,9 +424,10 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char* overrideEntry)
 	return;
 }
 
-void AppendDnsmasqConfEntry(char* string1)
+void AppendDnsmasqConfEntry(char (*string1)[MAX_BUF_SIZE], int count)
 {
     FILE *fp2;
+    int i;
 
     fp2 = fopen(DNSMASQ_SERVERS_CONF ,"a");
 
@@ -425,8 +436,11 @@ void AppendDnsmasqConfEntry(char* string1)
         fprintf(stderr,"\nError reading file\n");
         return;
     }
-
-    fprintf(fp2, "%s", string1);
+     
+    for(i=0; i< count;i++)
+    {
+    	fprintf(fp2, "%s", string1[i]);
+    }
     fclose(fp2);
 
 	return;
@@ -439,7 +453,7 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     char buf[256] = {0};
     char resolvConfFirstIPv4Nameserver[256] = {0};
     char resolvConfFirstIPv6Nameserver[256] = {0};
-    char dnsmasqConfOverrideEntry[256] = {0};
+    char dnsmasqConfOverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
     char tokenIPv4[256] = {0};
     char tokenIPv6[256] = {0};
     char* token = NULL;;
@@ -455,69 +469,81 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
 		fprintf(stderr,"\nCreateDnsmasqServerConf() Error opening file %s \n", RESOLV_CONF);
         return;
     }
-	//Step 2: scan RESOLV_CONF for first IPv4 & IPv6 nameserver entries. We will use this to create default dnsoverride entry//
+	//Step 2: scan RESOLV_CONF for primary and secondary IPv4 & IPv6 nameserver entries. We will use this to create default dnsoverride entry//
 	while(fgets(resolvConfEntry, sizeof(resolvConfEntry), fp1) != NULL)
-    {
-    	if(strstr(resolvConfEntry, "nameserver") != NULL)
-    		{
+   {
+        if(strstr(resolvConfEntry, "nameserver") != NULL)
+                {
                 strcpy(buf, resolvConfEntry);
+          	fprintf(stderr, "%s CcspXDNS resolv.conf nameserver entry: %s\n", __FUNCTION__, buf);
 
                 char *newline = strchr( buf, '\n' );
                 if ( newline )
                     *newline = 0;
 
-			token = strtok(buf, s); //first token: nameserver
+                        token = strtok(buf, s); //first token: nameserver
                 if(!token)
                 {
-                    continue;   
-                }                 
+                    continue;
+                }
 
-			token = strtok(NULL, s); // token after nameserver : ipv4 or v6 addr
+                        token = strtok(NULL, s); // token after nameserver : ipv4 or v6 addr
                 if(!token)
                 {
-                    continue;   
-                }                 
+                    continue;
+                }
 
                 if(!foundIPv4 && strstr(token, "."))
                 {
-                    foundIPv4 = 1;
-                    strcpy(tokenIPv4, token);
+                        foundIPv4 = 1;
+                        strncpy(tokenIPv4, token,MAX_BUF_SIZE);
                 }
-                
-                if(!foundIPv6 && strstr(token, ":")) 
+
+                if(!foundIPv6 && strstr(token, ":"))
                 {
-                    foundIPv6 = 1;
-                    strcpy(tokenIPv6, token);
+                        foundIPv6 = 1;
+                        strncpy(tokenIPv6, token,MAX_BUF_SIZE);
                 }
-    		}
+                }
     }
 
     fclose(fp1);
+  
+        //intilalization of Default XDNS parametrs to NULL
+    memset(pMyObject->DefaultDeviceDnsIPv4, 0,MAX_BUF_SIZE);
+    memset(pMyObject->DefaultDeviceDnsIPv6, 0,MAX_BUF_SIZE);
+    memset(pMyObject->DefaultSecondaryDeviceDnsIPv4, 0,MAX_BUF_SIZE);
+    memset(pMyObject->DefaultSecondaryDeviceDnsIPv6, 0,MAX_BUF_SIZE);
+    memset(pMyObject->DefaultDeviceTag, 0,MAX_BUF_SIZE);  
 
 	//store values read from resolv.conf to TR181 object, could be empty
-    strcpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4);
-    strcpy(pMyObject->DefaultDeviceDnsIPv6, tokenIPv6);
-    strcpy(pMyObject->DefaultDeviceTag, "empty");
+    strncpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4,MAX_BUF_SIZE);
+    strncpy(pMyObject->DefaultDeviceDnsIPv6, tokenIPv6,MAX_BUF_SIZE);
+    strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv4, "",MAX_BUF_SIZE);
+    strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, "",MAX_BUF_SIZE);
+    strncpy(pMyObject->DefaultDeviceTag, "empty",MAX_BUF_SIZE);
 
 #ifndef FEATURE_IPV6
 	/* IPv4 ONLY MODE : Create xDNS default dnsoverride entry */
 	if(foundIPv4)
 	{
-	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", tokenIPv4, pMyObject->DefaultDeviceTag);
-	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
+	snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", tokenIPv4, pMyObject->DefaultDeviceTag);
+	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry,1); //only primary XDNS has default. secondary is NULL so giving 1 for append
 	}
 #else
 	/* Create xDNS default dnsoverride entry by reading both IPv4 and IPv6 */
 	if(foundIPv4 && foundIPv6)
-    snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
+        {
+    		snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
 	//else if(foundIPv4)	// !foundIPv6
 	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, "::", pMyObject->DefaultDeviceTag);
 	//else if(foundIPv6)	// !foundIPv4
 	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", "0.0.0.0", tokenIPv6, pMyObject->DefaultDeviceTag);
-	else // both entries not found in resolv.conf, we cannot create default dnsoverride.
+      }	
+      else // both entries not found in resolv.conf, we cannot create default dnsoverride.
 		return;
 
-    AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry);
+    AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry,1); //only primary XDNS has default. secondary is NULL so giving 1 for append
 #endif
 
     //update entries to resolv.conf
@@ -579,6 +605,8 @@ CosaDmlGetSelfHealCfg(
 
     /* MURUGAN - below logic is to add ip rule for each dns upstream server */
   	printf("CosaDmlGetSelfHealCfg: Calling logic to add ip rule for each dns upstream server");
+        int Secondaryipv4count=0;
+	int Secondaryipv6count=0;
 
     if ( (fp_dnsmasq_conf=fopen(DNSMASQ_SERVERS_CONF, "r")) != NULL )
     {
@@ -615,8 +643,16 @@ CosaDmlGetSelfHealCfg(
                 {
                     char iprulebuf[256] = {0};
                     snprintf(iprulebuf, 256, "from all to %s lookup erouter", token);
-
-                    strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
+                    
+                    if(Secondaryipv4count)
+		    {
+    			strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv4, token,MAX_BUF_SIZE);
+                    }
+		    else
+                    {
+                    	strncpy(pMyObject->DefaultDeviceDnsIPv4, token,MAX_BUF_SIZE);
+			Secondaryipv4count=1;
+		    }
                     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
                         vsystem("ip -4 rule add %s", iprulebuf);                
                 }
@@ -631,8 +667,16 @@ CosaDmlGetSelfHealCfg(
                 {
                     char iprulebuf[256] = {0};
                     snprintf(iprulebuf, 256, "from all to %s lookup erouter", token);
-
-                    strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
+                     
+                    if(Secondaryipv6count)
+		    {
+			strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, token,MAX_BUF_SIZE);	
+		    }
+		    else
+		    {
+                    	strncpy(pMyObject->DefaultDeviceDnsIPv6, token,MAX_BUF_SIZE);
+			Secondaryipv6count=1;
+		    }
 
                     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
                         vsystem("ip -6 rule add %s", iprulebuf);

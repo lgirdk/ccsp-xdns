@@ -157,6 +157,36 @@ XDNS_GetParamStringValue
         }
     }
 
+    if( AnscEqualString(ParamName, "DefaultSecondaryDeviceDnsIPv4", TRUE))
+    {
+        int bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4);
+        if (bufsize < *pUlSize)
+        {
+            AnscCopyString(pValue, pMyObject->DefaultSecondaryDeviceDnsIPv4);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = bufsize + 1;
+            return 1;
+        }
+    }
+
+    if( AnscEqualString(ParamName, "DefaultSecondaryDeviceDnsIPv6", TRUE))
+    {
+        int bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6);
+        if (bufsize < *pUlSize)
+        {
+            AnscCopyString(pValue, pMyObject->DefaultSecondaryDeviceDnsIPv6);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = bufsize + 1;
+            return 1;
+        }
+    }
+
     if( AnscEqualString(ParamName, "DefaultDeviceTag", TRUE))
     {
         int bufsize = strlen(pMyObject->DefaultDeviceTag);
@@ -224,18 +254,35 @@ XDNS_SetParamStringValue
         /* save update to backup */
         pMyObject->DefaultDeviceDnsIPv4Changed = TRUE;
         AnscCopyString( pMyObject->DefaultDeviceDnsIPv4, pString );
+	fprintf(stderr, "%s primary ipv4 address is set to %s\n",__FUNCTION__,pMyObject->DefaultDeviceDnsIPv4);
     }
     else if( AnscEqualString(ParamName, "DefaultDeviceDnsIPv6", TRUE))
     {
         /* save update to backup */
         pMyObject->DefaultDeviceDnsIPv6Changed = TRUE;
         AnscCopyString( pMyObject->DefaultDeviceDnsIPv6, pString );
+	fprintf(stderr, "%s primary ipv6 address is set to %s\n",__FUNCTION__,pMyObject->DefaultDeviceDnsIPv6);
+    }
+    else if( AnscEqualString(ParamName, "DefaultSecondaryDeviceDnsIPv4", TRUE))
+    {
+        /* save update to backup */
+        pMyObject->DefaultSecondaryDeviceDnsIPv4Changed = TRUE;
+        AnscCopyString( pMyObject->DefaultSecondaryDeviceDnsIPv4, pString );
+	fprintf(stderr, "%s secondary ipv4 address is set to %s\n",__FUNCTION__,pMyObject->DefaultSecondaryDeviceDnsIPv4);
+    }
+    else if( AnscEqualString(ParamName, "DefaultSecondaryDeviceDnsIPv6", TRUE))
+    {
+        /* save update to backup */
+        pMyObject->DefaultSecondaryDeviceDnsIPv6Changed = TRUE;
+        AnscCopyString( pMyObject->DefaultSecondaryDeviceDnsIPv6, pString );
+	fprintf(stderr, "%s secondary ipv6 address is set to %s\n",__FUNCTION__,pMyObject->DefaultSecondaryDeviceDnsIPv6);
     }
     else if( AnscEqualString(ParamName, "DefaultDeviceTag", TRUE))
     {
         /* save update to backup */
         pMyObject->DefaultDeviceTagChanged = TRUE;
         AnscCopyString( pMyObject->DefaultDeviceTag, pString );
+	fprintf(stderr, "%s DefaultDeviceTag is set to %s\n",__FUNCTION__,pMyObject->DefaultDeviceTag);
 
     }
     else
@@ -290,6 +337,34 @@ XDNS_Validate
         }
     }
 
+    if(pMyObject->DefaultSecondaryDeviceDnsIPv4Changed)
+    {
+        if(!strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4))
+        {
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : Secondary IPv4 String is Empty  RET %d \n", __FUNCTION__, ret ));
+            AnscCopyString(pReturnParamName, "SecondaryDnsIPv4 is empty");
+        }
+        else
+        {
+            ret = (isValidIPv4Address(pMyObject->DefaultSecondaryDeviceDnsIPv4) == 1) ? TRUE : FALSE;
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s :  isValidIPv4Address for secondary server RET %d \n", __FUNCTION__, ret ));
+        }
+    }
+
+    if(pMyObject->DefaultSecondaryDeviceDnsIPv6Changed)
+    {
+        if(!strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6))
+        {
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : Secondary IPv6 String is Empty  RET %d \n", __FUNCTION__, ret ));
+            AnscCopyString(pReturnParamName, "Secondary DnsIPv6 is empty");
+        }
+        else
+        {
+            ret = (isValidIPv6Address(pMyObject->DefaultSecondaryDeviceDnsIPv6) == 1) ? TRUE : FALSE;
+            CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s :  isValidIPv6Address for secondary server RET %d \n", __FUNCTION__, ret ));
+        }
+    }
+
     if(pMyObject->DefaultDeviceTagChanged)
     {
         int len = strlen(pMyObject->DefaultDeviceTag);
@@ -310,8 +385,10 @@ XDNS_Commit
         ANSC_HANDLE                 hInsContext
     )
 {
-    char dnsoverrideEntry[256] = {0};
+    char dnsoverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
     char* defaultMacAddress = "00:00:00:00:00:00";
+    int count=0;
+    char iprulebuf[256] = {0};
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
@@ -319,21 +396,33 @@ XDNS_Commit
 
 #ifndef FEATURE_IPV6
     if(strlen(pMyObject->DefaultDeviceDnsIPv4))
-    {
-        char iprulebuf[256] = {0};
+    {  
         snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -4 rule add %s", iprulebuf);
 
-        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
-        ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
+        
+	snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
+        count++;
+
+    if(strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4))
+    {
+        memset(iprulebuf, 0, 64);
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+
+        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -4 rule add %s", iprulebuf);
+
+        snprintf(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
+	count++;        
     }
+    ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry,count);
+   }
 #else
     if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
     {
 
-        char iprulebuf[256] = {0};
         snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
@@ -344,8 +433,27 @@ XDNS_Commit
         if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -6 rule add %s", iprulebuf);
 
-        snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
-        ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry);
+        snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+	count++; 
+    if(strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4) && strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6))
+    {
+
+        memset(iprulebuf, 0, 64);
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+
+        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -4 rule add %s", iprulebuf);
+
+        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv6);
+
+        if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
+            vsystem("ip -6 rule add %s", iprulebuf);
+
+        snprintf(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultSecondaryDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+	count++; 
+    }
+
+      ReplaceDnsmasqConfEntry(defaultMacAddress, dnsoverrideEntry,count);
     }
 #endif    
     else
@@ -355,6 +463,8 @@ XDNS_Commit
 
     pMyObject->DefaultDeviceDnsIPv4Changed = FALSE;
     pMyObject->DefaultDeviceDnsIPv6Changed = FALSE;
+    pMyObject->DefaultSecondaryDeviceDnsIPv4Changed = FALSE;
+    pMyObject->DefaultSecondaryDeviceDnsIPv6Changed = FALSE;
     pMyObject->DefaultDeviceTagChanged = FALSE;
 
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
@@ -371,29 +481,42 @@ XDNS_Rollback
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
-    char* token = NULL;
+    char* primarytoken = NULL;
+    char* secondarytoken = NULL;
     const char* s = " ";
-    char buf[256] = {0};
+    char buf[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
     char* defaultMacAddress = "00:00:00:00:00:00";
 
-    GetDnsMasqFileEntry(defaultMacAddress, &buf);
+    GetDnsMasqFileEntry(defaultMacAddress,buf);
 
-    token = strtok(buf, s);
-    if(!token)
+    primarytoken = strtok(buf[0], s);
+    secondarytoken = strtok(buf[1], s);
+    if(!primarytoken || !secondarytoken)
     {
         return FALSE;   
     }
 
-    token = strtok(NULL, s);
-    if(!token)
+    primarytoken = strtok(NULL, s);
+    secondarytoken = strtok(NULL, s);
+    if(!primarytoken || !secondarytoken)
     {
         return FALSE;   
     }
 
-    token = strtok(NULL, s);
-    if(token && strstr(token, "."))
+    primarytoken = strtok(NULL, s);
+    if(primarytoken && strstr(primarytoken, "."))
     {
-        strcpy(pMyObject->DefaultDeviceDnsIPv4, token);
+        strncpy(pMyObject->DefaultDeviceDnsIPv4, primarytoken,MAX_BUF_SIZE);
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    secondarytoken = strtok(NULL, s);
+    if(secondarytoken && strstr(secondarytoken, "."))
+    {
+        strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv4, secondarytoken,MAX_BUF_SIZE);
     }
     else
     {
@@ -401,23 +524,34 @@ XDNS_Rollback
     }
 
 #ifdef FEATURE_IPV6
-    token = strtok(NULL, s);
-    if(token && strstr(token, ":"))
+    primarytoken = strtok(NULL, s);
+    if(primarytoken && strstr(primarytoken, ":"))
     {
-        strcpy(pMyObject->DefaultDeviceDnsIPv6, token);
+        strncpy(pMyObject->DefaultDeviceDnsIPv6, primarytoken,MAX_BUF_SIZE);
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    secondarytoken = strtok(NULL, s);
+    if(secondarytoken && strstr(secondarytoken, ":"))
+    {
+        strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, secondarytoken,MAX_BUF_SIZE);
     }
     else
     {
         return FALSE;
     }
 #else
-        strcpy(pMyObject->DefaultDeviceDnsIPv6, "");
+        strncpy(pMyObject->DefaultDeviceDnsIPv6, "",MAX_BUF_SIZE);
+	strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, "",MAX_BUF_SIZE);
 
 #endif
 
-    token = strtok(NULL, s);
-    if(token)
-        strcpy(pMyObject->DefaultDeviceTag, token);
+    primarytoken = strtok(NULL, s);
+    if(primarytoken)
+        strncpy(pMyObject->DefaultDeviceTag, primarytoken,MAX_BUF_SIZE);
 
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
