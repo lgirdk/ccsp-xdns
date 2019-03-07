@@ -53,7 +53,19 @@
                 <type>string(256)</type>
                 <syntax>string</syntax>
                 <writable>true</writable>
-            </parameter>            
+            </parameter>
+            <parameter>
+                <name>DefaultSecondaryDeviceDnsIPv4</name>
+                <type>string(256)</type>
+                <syntax>string</syntax>
+                <writable>true</writable>
+            </parameter>
+            <parameter>
+                <name>DefaultSecondaryDeviceDnsIPv6</name>
+                <type>string(256)</type>
+                <syntax>string</syntax>
+                <writable>true</writable>
+            </parameter> 
             <parameter>
                 <name>DefaultDeviceTag</name>
                 <type>string(256)</type>

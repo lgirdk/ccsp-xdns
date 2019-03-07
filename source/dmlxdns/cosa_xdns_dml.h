@@ -19,7 +19,7 @@
 
 #ifndef  _COSA_XDNS_DML_H
 #define  _COSA_XDNS_DML_H
-
+#define MAX_XDNS_SERV 2
 
 /***********************************************************************
 
