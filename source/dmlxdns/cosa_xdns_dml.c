@@ -567,7 +567,7 @@ DNSMappingTable_DelEntry
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry      = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
 	/* Remove entery from the database */
 
-    ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, NULL);
+    ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, NULL,1);
 
     if ( returnStatus == ANSC_STATUS_SUCCESS )
 	{
@@ -811,7 +811,7 @@ DNSMappingTable_Commit
     )
 
 {
-    char dnsoverrideEntry[256] = {0};
+    char dnsoverrideEntry[1][256] = {0,0};
 
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
@@ -829,11 +829,11 @@ DNSMappingTable_Commit
     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
         vsystem("ip -6 rule add %s", iprulebuf);
 
-    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
+    snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
 #else
-    snprintf(dnsoverrideEntry, 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->Tag);
+    snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->Tag);
 #endif
-    ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, dnsoverrideEntry);
+    ReplaceDnsmasqConfEntry(pDnsTableEntry->MacAddress, dnsoverrideEntry,1);
 
     pDnsTableEntry->MacAddressChanged = FALSE;
     pDnsTableEntry->DnsIPv4Changed = FALSE;
