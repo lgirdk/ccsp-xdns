@@ -129,6 +129,21 @@ void RefreshResolvConfEntry()
 	//1. read non-dnsoverride entries from RESOLV_CONF and write to temp file
 	//2. read dnsoverride entries from DNSMASQ_SERVERS_CONF and write to temp file
 	//3. clear resolv.conf and write all entries from temp file to RESOLV_CONF
+#if defined(_COSA_FOR_BCI_)
+
+        char multiprofile_flag[20]={0};
+        int mc = syscfg_get(NULL, "MultiProfileXDNS", multiprofile_flag, sizeof(multiprofile_flag));
+        if(0 == strcmp("1", multiprofile_flag))
+        {
+                fprintf(stderr,"## CcspXDNS #### Multi Profile XDNS feature is Enabled\n");
+
+        }
+        else
+        {
+                fprintf(stderr,"## CcspXDNS #### Multi Profile XDNS feature is disabled\n");
+        }
+
+#endif
 
 	char xdnsflag[20] = {0};
 	int rc = syscfg_get(NULL, "X_RDKCENTRAL-COM_XDNS", xdnsflag, sizeof(xdnsflag));
@@ -186,6 +201,14 @@ void RefreshResolvConfEntry()
 			continue;
 		}
 
+#if defined(_COSA_FOR_BCI_)
+
+            if ( strstr(resolvConfEntry, "XDNS_Multi_Profile"))
+                {
+                        continue;
+                }
+#endif
+
     	// write non dnsoverride entries to temp file
         fprintf(fp2, "%s", resolvConfEntry);
     }
@@ -195,6 +218,14 @@ void RefreshResolvConfEntry()
     {
     	if ( !strstr(dnsmasqConfEntry, "dnsoverride"))
     	{
+
+#if defined(_COSA_FOR_BCI_)
+                if(strstr(dnsmasqConfEntry, "XDNS_Multi_Profile"))
+                {
+                        fprintf(fp2, "%s", dnsmasqConfEntry);
+                }
+#endif
+
     		continue;
     	}
 
