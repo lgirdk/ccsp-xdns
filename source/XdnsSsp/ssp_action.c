@@ -85,6 +85,7 @@
 #include "ccsp_trace.h"
 #include <time.h>
 #include "cosa_plugin_api.h"
+#include "dm_pack_create_func.h"
 
 extern ULONG                            g_ulAllocatedSizePeak;
 
@@ -226,11 +227,11 @@ ssp_engage_xdns
     }
 
     returnStatus =
-        pDslhCpeController->RegisterCcspDataModel
+        pDslhCpeController->RegisterCcspDataModel2
             (
                 (ANSC_HANDLE)pDslhCpeController,
                 CrName, /*CCSP_DBUS_INTERFACE_CR,*/             /* CCSP CR ID */
-                COSA_PLUGIN_XML_FILE,               /* Data Model XML file. Can be empty if only base data model supported. */
+                DMPackCreateDataModelXML,            /* Comcast generated code to create XML. */
                 CCSP_COMPONENT_NAME_XDNS,            /* Component Name    */
                 CCSP_COMPONENT_VERSION_XDNS,         /* Component Version */
                 CCSP_COMPONENT_PATH_XDNS,            /* Component Path    */
