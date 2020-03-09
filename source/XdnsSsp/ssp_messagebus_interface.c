@@ -92,7 +92,10 @@ ssp_XdnsMbi_MessageBusEngage
 
     if ( ! component_id || ! path )
     {
-        CcspTraceError((" !!! ssp_XdnsMbi_MessageBusEngage: component_id or path is NULL !!!\n"));
+        /* Coverity Fix:  Negative Returns */
+   	CcspTraceError((" !!! ssp_XdnsMbi_MessageBusEngage: component_id or path is NULL !!!\n"));
+        return ANSC_STATUS_FAILURE; 
+        
     }
 
     /* Connect to message bus */
