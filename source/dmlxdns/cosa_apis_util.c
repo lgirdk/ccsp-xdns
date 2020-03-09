@@ -88,8 +88,9 @@ CosaUtilStringToHex
         char          *str,
         unsigned char *hex_str
     )
-{
-    INT   i, index, val = 0;
+{   
+    /* Coverity Issue Fix - CID:58220,59700  : UnInitialised Variable*/
+    INT   i = 0, index = 0,val = 0;
     CHAR  byte[3]       = {'\0'};
 
     while(str[i] != '\0')
@@ -604,7 +605,7 @@ CosaUtilGetStaticRouteTable
 
 int vsystem(const char *fmt, ...)
 {
-    char cmd[512];
+    char cmd[512] = {0};
     va_list ap;
     int n;
 
