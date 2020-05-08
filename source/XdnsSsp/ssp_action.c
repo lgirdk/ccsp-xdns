@@ -86,6 +86,7 @@
 #include <time.h>
 #include "cosa_plugin_api.h"
 #include "dm_pack_create_func.h"
+#include "safec_lib_common.h"
 
 extern ULONG                            g_ulAllocatedSizePeak;
 
@@ -123,7 +124,7 @@ ssp_create_xdns
     g_pComponent_Common_Dm->Name     = AnscCloneString(CCSP_COMPONENT_NAME_XDNS);
     g_pComponent_Common_Dm->Version  = 1;
     g_pComponent_Common_Dm->Author   = AnscCloneString("Shubham Baheti");
-
+    errno_t                 rc       = -1;
 
     /* Create ComponentCommonDatamodel interface*/
     if ( !pXdnsCcdIf )
@@ -136,7 +137,13 @@ ssp_create_xdns
         }
         else
         {
-            AnscCopyString(pXdnsCcdIf->Name, CCSP_CCD_INTERFACE_NAME);
+            rc = strcpy_s(pXdnsCcdIf->Name,sizeof(pXdnsCcdIf->Name) ,CCSP_CCD_INTERFACE_NAME);
+            if (rc != EOK)
+            {
+                ERR_CHK(rc);
+                free(pXdnsCcdIf);
+                return ANSC_STATUS_FAILURE;
+            }
 
             pXdnsCcdIf->InterfaceId              = CCSP_CCD_INTERFACE_ID;
             pXdnsCcdIf->hOwnerContext            = NULL;
