@@ -73,7 +73,7 @@
 #include <sys/inotify.h>
 #include <limits.h>
 #include "ccsp_xdnsLog_wrapper.h"
-
+#include "safec_lib_common.h"
 //static pthread_mutex_t dnsmasqMutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -86,6 +86,7 @@ void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
     FILE *fp1;
     int count=0;
     char dnsmasqConfEntry[256] = {0};
+    errno_t        rc          = -1;
 
     if(!macaddress || !strlen(macaddress))
     {
@@ -105,7 +106,13 @@ void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
     {
         if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
-                strcpy(defaultEntry[count], dnsmasqConfEntry);
+               rc = strcpy_s(defaultEntry[count], MAX_BUF_SIZE , dnsmasqConfEntry);
+               if(rc != EOK)
+               {
+                   ERR_CHK(rc);
+                   fclose(fp1);
+                   return;
+               }
           	if(count==MAX_XDNS_SERV)
                 {
                   	break;
@@ -129,12 +136,13 @@ void RefreshResolvConfEntry()
 	//1. read non-dnsoverride entries from RESOLV_CONF and write to temp file
 	//2. read dnsoverride entries from DNSMASQ_SERVERS_CONF and write to temp file
 	//3. clear resolv.conf and write all entries from temp file to RESOLV_CONF
+         errno_t                         rc1          = -1;
 #if defined(_COSA_FOR_BCI_)
 
         char multiprofile_flag[20]={0};
         int mc = syscfg_get(NULL, "MultiProfileXDNS", multiprofile_flag, sizeof(multiprofile_flag));
-        if(0 == strcmp("1", multiprofile_flag))
-        {
+        if( multiprofile_flag[0] == '1' &&  multiprofile_flag[1] == '\0')
+        { 
                 fprintf(stderr,"## CcspXDNS #### Multi Profile XDNS feature is Enabled\n");
 
         }
@@ -151,12 +159,12 @@ void RefreshResolvConfEntry()
 	{
 		printf("### XDNS - Never enabled. CcspXDNS Not writing to RESOLV_CONF ### \n");
 	}
-	else if(0 == strcmp("0", xdnsflag)) //flag set to false
-	{
-		printf("### XDNS - Disabled. CcspXDNS Not writing to RESOLV_CONF  ###\n");
-	}
-	else if (0 == strcmp("1", xdnsflag)) //if xDNS set to true
-	{
+        else if((xdnsflag[0] == '0') && xdnsflag[1] == '\0') //flag set to false
+        {
+                printf("### XDNS - Disabled. CcspXDNS Not writing to RESOLV_CONF  ###\n");
+        }
+        else if((xdnsflag[0] == '1') && xdnsflag[1] == '\0') //if xDNS set to true
+        {        
 
     printf("### XDNS flag is enabled. CcspXDNS is syncing config to RESOLV_CONF  ###\n");
     char dnsmasqConfEntry[256] = {0};
@@ -230,30 +238,44 @@ void RefreshResolvConfEntry()
     	}
 
     	char tempEntry[256] = {0};
-    	strcpy(tempEntry, dnsmasqConfEntry);
-
+	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),dnsmasqConfEntry);
+        if(rc1 != EOK)
+        {
+            ERR_CHK(rc1);
+            continue;
+        }
     	//validate
-    	if(!strtok(tempEntry, " \t\n\r")) //dnsoverride token
-    		continue;
-
+        char *ptr = NULL, *tok= NULL;
+        size_t len = 0;
+        len = strlen(tempEntry);
+        tok= strtok_s(tempEntry, &len ," \t\n\r", &ptr);
+	if((!tok) || (!len ))
+	continue;
+  
     	char *macaddr = NULL, *srvaddr4 = NULL;
 #ifdef FEATURE_IPV6
     	char *srvaddr6 = NULL;
 #endif
 
-    	if(!(macaddr = strtok(NULL, " \t\n\r")))
-    		continue;
+        macaddr = strtok_s(NULL, &len, " \t\n\r", &ptr);
+        if((!macaddr) || (!len ))
+        continue;
 
-    	if(!(srvaddr4 = strtok(NULL, " \t\n\r")))
-    		continue;
+        srvaddr4 =  strtok_s(NULL, &len, " \t\n\r", &ptr);
+        if(!srvaddr4)
+        continue;
 
     	struct sockaddr_in sa;
     	if (inet_pton(AF_INET, srvaddr4, &(sa.sin_addr)) != 1)
     		continue;
 
 #ifdef FEATURE_IPV6
-    	if(!(srvaddr6 = strtok(NULL, " \t\n\r")))
-    		continue;
+        if(!len)
+        continue;
+
+        srvaddr6 =  strtok_s(NULL, &len, " \t\n\r", &ptr);
+        if(!srvaddr6)
+        continue;
 
     	struct sockaddr_in6 sa6;
     	if (inet_pton(AF_INET6, srvaddr6, &(sa6.sin6_addr)) != 1)
@@ -491,6 +513,8 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     const char* s = " ";
     int foundIPv4 = 0;
     int foundIPv6 = 0;
+    errno_t rc = -1;
+    int ind = -1;
 
 	//Step 1: Open RESOLV_CONF //
 	FILE *fp1 = NULL;
@@ -505,35 +529,53 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
    {
         if(strstr(resolvConfEntry, "nameserver") != NULL)
                 {
-                strcpy(buf, resolvConfEntry);
+		rc = strcpy_s(buf,sizeof(buf),resolvConfEntry);
+                if(rc != EOK)
+                {
+                    ERR_CHK(rc);
+                    continue;
+                }
           	fprintf(stderr, "%s CcspXDNS resolv.conf nameserver entry: %s\n", __FUNCTION__, buf);
 
                 char *newline = strchr( buf, '\n' );
                 if ( newline )
                     *newline = 0;
+                         size_t len = 0;
+                         len =strlen(buf);
+                         char *ptr = NULL;
+                          token = strtok_s(buf, &len, s,&ptr);
+                          if((!token) || (!len))
+                          {
+                              continue;
+                          }
 
-                        token = strtok(buf, s); //first token: nameserver
-                if(!token)
-                {
-                    continue;
-                }
-
-                        token = strtok(NULL, s); // token after nameserver : ipv4 or v6 addr
-                if(!token)
-                {
-                    continue;
-                }
+                         token = strtok_s(NULL, &len, s,&ptr); // token after nameserver : ipv4 or v6 addr
+                         if(!token)
+                         {
+                             continue;
+                         }
 
                 if(!foundIPv4 && strstr(token, "."))
                 {
                         foundIPv4 = 1;
-                        strncpy(tokenIPv4, token,MAX_BUF_SIZE);
+			rc = strcpy_s(tokenIPv4,sizeof(tokenIPv4),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
+
                 }
 
                 if(!foundIPv6 && strstr(token, ":"))
                 {
                         foundIPv6 = 1;
-                        strncpy(tokenIPv6, token,MAX_BUF_SIZE);
+			rc = strcpy_s(tokenIPv6,sizeof(tokenIPv6),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
                 }
                 }
     }
@@ -541,18 +583,38 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     fclose(fp1);
   
         //intilalization of Default XDNS parametrs to NULL
-    memset(pMyObject->DefaultDeviceDnsIPv4, 0,MAX_BUF_SIZE);
-    memset(pMyObject->DefaultDeviceDnsIPv6, 0,MAX_BUF_SIZE);
-    memset(pMyObject->DefaultSecondaryDeviceDnsIPv4, 0,MAX_BUF_SIZE);
-    memset(pMyObject->DefaultSecondaryDeviceDnsIPv6, 0,MAX_BUF_SIZE);
-    memset(pMyObject->DefaultDeviceTag, 0,MAX_BUF_SIZE);  
-
 	//store values read from resolv.conf to TR181 object, could be empty
-    strncpy(pMyObject->DefaultDeviceDnsIPv4, tokenIPv4,MAX_BUF_SIZE);
-    strncpy(pMyObject->DefaultDeviceDnsIPv6, tokenIPv6,MAX_BUF_SIZE);
-    strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv4, "",MAX_BUF_SIZE);
-    strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, "",MAX_BUF_SIZE);
-    strncpy(pMyObject->DefaultDeviceTag, "empty",MAX_BUF_SIZE);
+    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv4, sizeof(pMyObject->DefaultDeviceDnsIPv4),tokenIPv4);
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
+    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv6,sizeof(pMyObject->DefaultDeviceDnsIPv6) ,tokenIPv6);
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
+
+    rc = strcpy_s(pMyObject->DefaultSecondaryDeviceDnsIPv4, sizeof(pMyObject->DefaultSecondaryDeviceDnsIPv4),"");
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
+    rc = strcpy_s(pMyObject->DefaultSecondaryDeviceDnsIPv6, sizeof(pMyObject->DefaultSecondaryDeviceDnsIPv6),"");
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
+    rc = strcpy_s(pMyObject->DefaultDeviceTag,sizeof(pMyObject->DefaultDeviceTag) ,"empty");
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
 
 #ifndef FEATURE_IPV6
 	/* IPv4 ONLY MODE : Create xDNS default dnsoverride entry */
@@ -615,6 +677,7 @@ CosaDmlGetSelfHealCfg(
 	FILE* fp_dnsmasq_conf = NULL;
 	int ret = 0;
 	int index = 0;
+        errno_t rc     = -1;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry = NULL;
 
 	pMappingContainer = (PCOSA_DML_MAPPING_CONTAINER)AnscAllocateMemory(sizeof(COSA_DML_MAPPING_CONTAINER));
@@ -657,19 +720,23 @@ CosaDmlGetSelfHealCfg(
             {
                 char* token = NULL;
                 const char* s = " ";
-                token = strtok(buf, s);
-                if(!token)
+                size_t len = 0;
+                len =strlen(buf);
+                char *ptr = NULL;
+                 
+                token = strtok_s(buf, &len, s,&ptr);
+                if((!token) || (!len))
                 {
                     continue;   
                 }   
                 
-                token = strtok(NULL, s);
-                if(!token)
+                token = strtok_s(NULL, &len, s,&ptr);
+                if((!token) || (!len))
                 {
                     continue;   
                 } 
 
-                token = strtok(NULL, s);
+                token = strtok_s(NULL, &len, s,&ptr);
                 if(token && strstr(token, "."))
                 {
                     char iprulebuf[256] = {0};
@@ -677,11 +744,22 @@ CosaDmlGetSelfHealCfg(
                     
                     if(Secondaryipv4count)
 		    {
-    			strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv4, token,MAX_BUF_SIZE);
+			rc = strcpy_s(pMyObject->DefaultSecondaryDeviceDnsIPv4, sizeof(pMyObject->DefaultSecondaryDeviceDnsIPv4),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
+
                     }
 		    else
                     {
-                    	strncpy(pMyObject->DefaultDeviceDnsIPv4, token,MAX_BUF_SIZE);
+			rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv4, sizeof(pMyObject->DefaultDeviceDnsIPv4),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
 			Secondaryipv4count=1;
 		    }
                     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
@@ -693,7 +771,10 @@ CosaDmlGetSelfHealCfg(
                 }
 
     #ifdef FEATURE_IPV6
-                token = strtok(NULL, s);
+                if(!len)
+                continue;
+
+                token = strtok_s(NULL, &len, s,&ptr);
                 if(token && strstr(token, ":"))
                 {
                     char iprulebuf[256] = {0};
@@ -701,11 +782,22 @@ CosaDmlGetSelfHealCfg(
                      
                     if(Secondaryipv6count)
 		    {
-			strncpy(pMyObject->DefaultSecondaryDeviceDnsIPv6, token,MAX_BUF_SIZE);	
+			rc = strcpy_s(pMyObject->DefaultSecondaryDeviceDnsIPv6, sizeof(pMyObject->DefaultSecondaryDeviceDnsIPv6),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
+
 		    }
 		    else
 		    {
-                    	strncpy(pMyObject->DefaultDeviceDnsIPv6, token,MAX_BUF_SIZE);
+			rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv6, sizeof(pMyObject->DefaultDeviceDnsIPv6),token);
+                        if(rc != EOK)
+                        {
+                            ERR_CHK(rc);
+                            continue;
+                        }
 			Secondaryipv6count=1;
 		    }
 
@@ -717,11 +809,18 @@ CosaDmlGetSelfHealCfg(
                     continue;
                 }
     #endif
+                if(!len)
+                continue;
 
-                token = strtok(NULL, s);
+                token = strtok_s(NULL, &len, s,&ptr);
                 if(token)
                 {
-                    strcpy(pMyObject->DefaultDeviceTag, token);
+                    rc = strcpy_s(pMyObject->DefaultDeviceTag,sizeof(pMyObject->DefaultDeviceTag) , token);
+                    if(rc != EOK)
+                    {
+                        ERR_CHK(rc);
+                        continue;
+                    }
                 }
 
                 continue;

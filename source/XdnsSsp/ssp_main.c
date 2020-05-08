@@ -44,6 +44,7 @@
 #include "breakpad_wrapper.h"
 #endif
 #include "stdlib.h"
+#include "safec_lib_common.h"
 
 PDSLH_CPE_CONTROLLER_OBJECT     pDslhCpeController      = NULL;
 PCOMPONENT_COMMON_DM            g_pComponent_Common_Dm  = NULL;
@@ -301,6 +302,8 @@ int main(int argc, char* argv[])
     int                             cmdChar            = 0;
     BOOL                            bRunAsDaemon       = TRUE;
     int                             idx                = 0;
+    errno_t                         rc                 = -1;
+    int                             ind                = -1;
     debugLogFile = stderr;
 #if defined(_DEBUG) && defined(_COSA_SIM_)
     AnscSetTraceLevel(CCSP_TRACE_LEVEL_INFO);
@@ -308,20 +311,47 @@ int main(int argc, char* argv[])
 
     for (idx = 1; idx < argc; idx++)
     {
-        if ( (strcmp(argv[idx], "-subsys") == 0) )
+        rc = strcmp_s("-subsys", strlen("-subsys"),argv[idx],&ind );
+        ERR_CHK(rc);
+        if((!ind) && (rc == EOK))
         {
-            AnscCopyString(g_Subsystem, argv[idx+1]);
+             if((idx+1) < argc)
+             {
+                 rc = strcpy_s(g_Subsystem, sizeof(g_Subsystem),argv[idx+1]);
+                 if(rc != EOK)
+                 {
+                     ERR_CHK(rc);
+                     return -1;
+                 }
+             }
+             else
+             {
+                 CcspTraceWarning(("susbys warning, no subsequent cmd line arg!\n"));
+             }
         }
-        else if ( strcmp(argv[idx], "-c") == 0 )
+        else
         {
-            bRunAsDaemon = FALSE;
-        }
-        else if ( (strcmp(argv[idx], "-DEBUG") == 0) )
+            rc = strcmp_s("-c", strlen("-c"),argv[idx],&ind );
+            ERR_CHK(rc);
+            if((!ind) && (rc == EOK))
+            {
+                bRunAsDaemon = FALSE;
+            }
+        
+        else
         {
+            rc = strcmp_s("-DEBUG", strlen("-DEBUG"),argv[idx],&ind );
+            ERR_CHK(rc);
+            if((!ind) && (rc == EOK))
+            {
             consoleDebugEnable = 1;
             fprintf(stderr, "DEBUG ENABLE ON \n");
-        }
-        else if ( (strcmp(argv[idx], "-LOGFILE") == 0) )
+            }
+        
+        else{
+        rc = strcmp_s("-LOGFILE", strlen("-LOGFILE"),argv[idx],&ind );
+        ERR_CHK(rc);
+        if((!ind) && (rc == EOK))
         {
             // We assume argv[1] is a filename to open
             debugLogFile = fopen( argv[idx + 1], "a+" );
@@ -337,7 +367,10 @@ int main(int argc, char* argv[])
                 fprintf(debugLogFile, "Log File [%s] Opened for Writing in Append Mode \n",  argv[idx+1]);
             }
 
-        }          
+        }    
+        } 
+        }     
+        }
     }
 
     /* Set the global pComponentName */
