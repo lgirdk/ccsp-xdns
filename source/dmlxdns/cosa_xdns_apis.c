@@ -407,6 +407,8 @@ void* MonitorResolvConfForChanges(void *arg)
          p += sizeof(struct inotify_event) + event->len;
         }
     }
+  /*Coverity Fix CID:73768 MISSING_RETURN */
+  return;
 }
 
 
@@ -429,7 +431,8 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZ
     if(fp1 == NULL)
     {
         fprintf(stderr,"\nReplaceDnsmasqConfEntry() - File Not Created %s\n", DNSMASQ_SERVERS_CONF);
-        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Create Entry with %s\n", overrideEntry);
+        /* Coverity Fix CID:70954 PRINTF_ARGS_MISMATCH */
+        fprintf(stderr,"\nReplaceDnsmasqConfEntry() - Create Entry with  overrideEntry \n");
         // This is the case where the DNSMASQ_SERVERS_CONF file is not created if
         // during bootup the IPv4 or IPv6 stack does not come up before
         // XDNS component is started. Here we will create the File and add
@@ -469,7 +472,10 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZ
     fclose(fp1);
     unlink(DNSMASQ_SERVERS_CONF);
     fclose(fp2);
-    rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF);
+    /*Coverity Fix CID:68436 CHECKED_RETURN */
+    if(rename(DNSMASQ_SERVERS_BAK, DNSMASQ_SERVERS_CONF) != 0 )
+        fprintf(stderr,"Error in renaming  file\n");
+        
 
 	// update to resolv.conf file
     RefreshResolvConfEntry();
@@ -662,6 +668,7 @@ void FillEntryInList(PCOSA_DATAMODEL_XDNS pXdns, PCOSA_DML_XDNS_MACDNS_MAPPING_E
 
 	pXdnsCxtLink->hContext = (ANSC_HANDLE)dnsTableEntry;
 	CosaSListPushEntryByInsNum(&pXdns->XDNSDeviceList, (PCOSA_CONTEXT_LINK_OBJECT)pXdnsCxtLink); 
+
 }
 
 

@@ -197,6 +197,7 @@ ssp_engage_xdns
 {
 	ANSC_STATUS					    returnStatus                                         = ANSC_STATUS_SUCCESS;
         char                                                CrName[256];
+   ANSC_HANDLE tempIf = NULL;
 
     g_pComponent_Common_Dm->Health = CCSP_COMMON_COMPONENT_HEALTH_Yellow;
 
@@ -207,20 +208,28 @@ ssp_engage_xdns
     }
 
     g_DslhDataModelAgent->SetFcContext((ANSC_HANDLE)g_DslhDataModelAgent, (ANSC_HANDLE)pXdnsFcContext);
-
-    pDslhCpeController->AddInterface((ANSC_HANDLE)pDslhCpeController, (ANSC_HANDLE)MsgHelper_CreateCcdMbiIf((void*)bus_handle, g_Subsystem));
+    /*Coverity Fix CID:73793 RESOURCE_LEAK */
+    tempIf = MsgHelper_CreateCcdMbiIf((void*)bus_handle, g_Subsystem);
+    pDslhCpeController->AddInterface((ANSC_HANDLE)pDslhCpeController,tempIf);
     pDslhCpeController->AddInterface((ANSC_HANDLE)pDslhCpeController, (ANSC_HANDLE)pXdnsCcdIf);
     pDslhCpeController->SetDbusHandle((ANSC_HANDLE)pDslhCpeController, bus_handle);
     pDslhCpeController->Engage((ANSC_HANDLE)pDslhCpeController);
-
+    
+    
     if ( g_Subsystem[0] != 0 )
     {
-        _ansc_sprintf(CrName, "%s%s", g_Subsystem, CCSP_DBUS_INTERFACE_CR);
+           /* Coverity Fix CID:58058  DC.STRING_BUFFER */
+        snprintf(CrName,sizeof(CrName), "%s%s", g_Subsystem, CCSP_DBUS_INTERFACE_CR);
     }
     else
     {
-        _ansc_sprintf(CrName, "%s", CCSP_DBUS_INTERFACE_CR);
+             /* Coverity Fix CID:58058  DC.STRING_BUFFER */
+        snprintf(CrName,sizeof(CrName), "%s",CCSP_DBUS_INTERFACE_CR);
     }
+
+    
+    
+ 
 
     if ( g_GetParamValueByPathNameProc == NULL )
     {
@@ -251,6 +260,7 @@ ssp_engage_xdns
         g_pComponent_Common_Dm->Health = CCSP_COMMON_COMPONENT_HEALTH_Green;
     }
 
+    free(tempIf);
     return ANSC_STATUS_SUCCESS;
 }
 
