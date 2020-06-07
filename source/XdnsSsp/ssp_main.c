@@ -369,6 +369,9 @@ int main(int argc, char* argv[])
             {
                 fprintf(debugLogFile, "Log File [%s] Opened for Writing in Append Mode \n",  argv[idx+1]);
             }
+           
+            /*Coverity Fix CID:72594 RESOURCE_LEAK */
+            fclose(debugLogFile);
 
         }    
         } 
@@ -442,6 +445,9 @@ int main(int argc, char* argv[])
         while ( cmdChar != 'q' )
         {
             cmdChar = getchar();
+            /* Coverity Fix CID:80111 CHECKED_RETURN */
+            if(cmdChar < 0 )
+                fprintf(stderr, "gerchar() returns -ve value \n");
 
             sleep(30);
             cmd_dispatch(cmdChar);

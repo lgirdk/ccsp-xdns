@@ -1198,6 +1198,8 @@ DNSMappingTable_Synchronize
     PSINGLE_LINK_ENTRY                    pSListEntry       = NULL;
     PSINGLE_LINK_ENTRY                    pSListEntry2      = NULL;
     ULONG                                 entryCount        = 0;
+    /*Coverity Fix CID:72723  MISSING_RETURN */
+    return ANSC_STATUS_SUCCESS;
 }
 
 ANSC_HANDLE
@@ -1622,6 +1624,9 @@ DNSMappingTable_Commit
     pDnsTableEntry->TagChanged = FALSE;        
 
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT  \n", __FUNCTION__ ));
+  
+    /*Coverity Fix CID:53942 MISSING_RETURN */
+    return ANSC_STATUS_SUCCESS;
 }
 
 ULONG
@@ -1761,5 +1766,7 @@ DNSMappingTable_Rollback
 
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT \n", __FUNCTION__ ));
 
+    /*Coverity Fix CID:69558  MISSING_RETURN */
+    return ANSC_STATUS_SUCCESS;
 }
 
