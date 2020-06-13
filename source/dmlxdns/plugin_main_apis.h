@@ -68,6 +68,7 @@
 #include "cosa_apis.h"
 #include "ccsp_base_api.h"
 #include "dslh_cpeco_interface.h"
+#include "sysevent/sysevent.h"
 
 // include files needed by diagnostic
 
@@ -131,5 +132,10 @@ CosaBackEndManagerRemove
     (
         ANSC_HANDLE                 hThisObject
     );
+extern int commonSyseventFd;
+extern token_t commonSyseventToken;
+int commonSyseventSet(char* key, char* value);
+int commonSyseventGet(char* key, char* value, int valLen);
+int commonSyseventClose();
 
 #endif

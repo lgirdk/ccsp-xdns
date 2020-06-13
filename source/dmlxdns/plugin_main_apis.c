@@ -67,6 +67,9 @@
 
 #include "plugin_main_apis.h"
 #include "cosa_xdns_apis.h"
+#include "sysevent/sysevent.h"
+#include "utapi/utapi.h"
+#include "utapi/utapi_util.h"
 
 COSAGetParamValueStringProc        g_GetParamValueString;
 COSAGetParamValueUlongProc         g_GetParamValueUlong;
@@ -211,4 +214,40 @@ CosaBackEndManagerRemove
     AnscFreeMemory((ANSC_HANDLE)pMyObject);
 
     return returnStatus;
+}
+
+int commonSyseventFd = -1;
+token_t commonSyseventToken;
+    
+static int openCommonSyseventConnection() {
+    if (commonSyseventFd == -1) {
+        commonSyseventFd = s_sysevent_connect(&commonSyseventToken);
+    }
+    return 0;
+}
+
+int commonSyseventSet(char* key, char* value){
+    if(commonSyseventFd == -1) {
+        openCommonSyseventConnection();
+    }
+    return sysevent_set(commonSyseventFd, commonSyseventToken, key, value, 0);
+}
+
+int commonSyseventGet(char* key, char* value, int valLen){
+    if(commonSyseventFd == -1) {
+        openCommonSyseventConnection();
+    }
+    return sysevent_get(commonSyseventFd, commonSyseventToken, key, value, valLen);
+}
+
+int commonSyseventClose() {
+    int retval;
+
+    if(commonSyseventFd == -1) {
+        return 0;
+    }
+
+    retval = sysevent_close(commonSyseventFd, commonSyseventToken);
+    commonSyseventFd = -1;
+    return retval;
 }

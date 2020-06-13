@@ -32,11 +32,29 @@
   </library>
   <objects>
     <object>
+        <name>DeviceInfo</name>
+        <objectType>object</objectType>
+        <functions>
+            <func_GetParamBoolValue>XDNSDeviceInfo_GetParamBoolValue</func_GetParamBoolValue>
+            <func_SetParamBoolValue>XDNSDeviceInfo_SetParamBoolValue</func_SetParamBoolValue>
+        </functions>
+        <parameters>
+            <parameter>
+                <name>X_RDKCENTRAL-COM_EnableXDNS</name>
+                <type>boolean</type>
+                <syntax>bool</syntax>
+                <writable>true</writable>
+            </parameter>
+      </parameters>
+    </object>
+    <object>
         <name>X_RDKCENTRAL-COM_XDNS</name>
         <objectType>object</objectType>
         <functions>
             <func_GetParamStringValue>XDNS_GetParamStringValue</func_GetParamStringValue>
             <func_SetParamStringValue>XDNS_SetParamStringValue</func_SetParamStringValue>
+            <func_GetParamBoolValue>XDNS_GetParamBoolValue</func_GetParamBoolValue>
+            <func_SetParamBoolValue>XDNS_SetParamBoolValue</func_SetParamBoolValue>
             <func_Validate>XDNS_Validate</func_Validate>
             <func_Commit>XDNS_Commit</func_Commit>
             <func_Rollback>XDNS_Rollback</func_Rollback>
@@ -70,6 +88,12 @@
                 <name>DefaultDeviceTag</name>
                 <type>string(256)</type>
                 <syntax>string</syntax>
+                <writable>true</writable>
+            </parameter>
+            <parameter>
+                <name>DNSSecEnable</name>
+                <type>boolean</type>
+                <syntax>bool</syntax>
                 <writable>true</writable>
             </parameter>
         </parameters>

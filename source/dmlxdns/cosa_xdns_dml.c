@@ -17,6 +17,7 @@
  * limitations under the License.
 */
 #include <arpa/inet.h>
+#include <syscfg/syscfg.h>
 #include "ansc_platform.h"
 #include "cosa_xdns_apis.h"
 #include "cosa_xdns_dml.h"
@@ -105,10 +106,171 @@ BOOL isValidMacAddress
 
  APIs for Object:
 
+    Device.DeviceInfo.
+
+    *  XDNSDeviceInfo_GetParamBoolValue
+    *  XDNSDeviceInfo_SetParamBoolValue
+
+***********************************************************************/
+
+BOOL
+XDNSDeviceInfo_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+
+
+   CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    // XDNS - get XDNS Enable/Disable flag
+
+
+    rc = strcmp_s("X_RDKCENTRAL-COM_EnableXDNS", strlen("X_RDKCENTRAL-COM_EnableXDNS"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+        char buf[5] = {0};
+        syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
+        if( buf != NULL )
+        {
+    		int var=atoi(buf);
+    		if(var)
+    		{
+                        *pBool = TRUE;
+                        return TRUE;
+                }
+        }
+
+        *pBool = FALSE;
+
+        return TRUE;
+    }
+
+    CcspXdnsConsoleTrace(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+BOOL
+XDNSDeviceInfo_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+    errno_t                         rc1                  = -1;
+    int                             ind1                 = -1;
+
+
+CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    // XDNS -  set XDNS Enable/Disable flag
+    rc = strcmp_s("X_RDKCENTRAL-COM_EnableXDNS", strlen("X_RDKCENTRAL-COM_EnableXDNS"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+        char bval[2] = {0};
+
+
+        // Check if value is same as already SET one.
+        char buf[5] = {0};
+        syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
+        if( buf != NULL )
+        {
+    	    int var=atoi(buf);
+
+            if(((bValue == TRUE) && (var)) ||
+               ((bValue == FALSE) && (!var)))
+            {
+	       fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is same in DB, just return\n",__FUNCTION__);
+               return TRUE;
+            }
+        }
+
+
+
+
+        if( bValue == TRUE)
+        {
+                if(!SetXdnsConfig())
+                        return FALSE;
+
+                bval[0] = '1';
+        }
+        else
+        {
+                        if(!UnsetXdnsConfig())
+                                return FALSE;
+
+                        bval[0] = '0';
+                }
+
+
+        if (syscfg_set(NULL, "X_RDKCENTRAL-COM_XDNS", bval) != 0)
+        {
+                CcspXdnsConsoleTrace(("[XDNS] syscfg_set X_RDKCENTRAL-COM_XDNS failed!\n"));
+        }
+        else
+        {
+#ifdef _CBR_PRODUCT_REQ_
+                if (syscfg_set(NULL, "XDNS_DNSSecEnable", bval) != 0)
+                {
+                        AnscTraceWarning(("[XDNS] syscfg_set XDNS_DNSSecEnable failed!\n"));
+                }
+                else
+                {
+                        fprintf(stderr, "%s [XDNS] XDNS_DNSSecEnable value is set to %s in DB\n",__FUNCTION__,bval);
+                }
+#endif        
+                if (syscfg_commit() != 0)
+                {
+                        CcspXdnsConsoleTrace(("[XDNS] syscfg_commit X_RDKCENTRAL-COM_XDNS failed!\n"));
+                }
+                else
+                {
+			fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is set to %s in DB\n",__FUNCTION__,bval);
+                        //Restart firewall to apply XDNS setting
+                        commonSyseventSet("firewall-restart", "");
+                }
+        }
+
+        return TRUE;
+    }
+    else
+    {
+        CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT FALSE \n", __FUNCTION__ ));
+        return FALSE;
+    }
+
+    CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT TRUE \n", __FUNCTION__ ));
+    return TRUE;
+
+
+}
+
+
+
+/***********************************************************************
+
+
+/***********************************************************************
+
+ APIs for Object:
+
     Device.X_RDKCENTRAL-COM_XDNS.
 
     *  XDNS_GetParamStringValue
     *  XDNS_SetParamStringValue
+    *  XDNS_GetParamBoolValue
+    *  XDNS_SetParamBoolValue
     *  XDNS_Validate
     *  XDNS_Commit
     *  XDNS_Rollback
@@ -242,6 +404,104 @@ XDNS_GetParamStringValue
 
     AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return -1;
+}
+
+BOOL
+XDNS_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+
+   CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    rc = strcmp_s("DNSSecEnable", strlen("DNSSecEnable"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+#ifdef _CBR_PRODUCT_REQ_
+        char buf[5] = {0};
+        syscfg_get( NULL, "XDNS_DNSSecEnable", buf, sizeof(buf));
+        if( buf != NULL )
+        {
+        	int var=atoi(buf);
+    		if(var)
+    		{
+
+                        *pBool = TRUE;
+                        return TRUE;
+                }
+        }
+
+#endif
+        *pBool = FALSE;
+
+        return TRUE;
+    }
+
+
+	return FALSE;
+}
+
+BOOL
+XDNS_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+
+    rc = strcmp_s("DNSSecEnable", strlen("DNSSecEnable"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+#ifdef _CBR_PRODUCT_REQ_    
+        char bval[2] = {0};
+        if( bValue == TRUE)
+        {
+                bval[0] = '1';
+        }
+        else
+        {
+                        bval[0] = '0';
+                }
+
+
+
+        if (syscfg_set(NULL, "XDNS_DNSSecEnable", bval) != 0)
+        {
+
+               CcspXdnsConsoleTrace(("RDK_LOG_DEBUG,%s syscfg_set XDNS_DNSSecEnable failed!!!!!\n", __FUNCTION__ ));
+        }
+        else
+        {
+                if (syscfg_commit() != 0)
+                {
+                       CcspXdnsConsoleTrace(("RDK_LOG_DEBUG,%s syscfg_commit XDNS_DNSSecEnable failed!!!!\n", __FUNCTION__ ));
+                }
+                else
+                {
+                       fprintf(stderr, "%s syscfg_set XDNS_DNSSecEnable value set to %s \n",__FUNCTION__,bval);
+                       commonSyseventSet("dhcp_server-stop", "");
+                       commonSyseventSet("dhcp_server-start", "");
+                }
+        }
+
+        return TRUE;
+#endif
+    }
+
+	return FALSE;
 }
 
 

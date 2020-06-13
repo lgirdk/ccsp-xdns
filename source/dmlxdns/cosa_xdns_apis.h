@@ -141,3 +141,5 @@ CosaXDNSRemove
 
 void ResetDnsmasqConfFile();
 void AppendDnsmasqConfEntry(char (*string1)[MAX_BUF_SIZE], int count);
+int SetXdnsConfig();
+int UnsetXdnsConfig();

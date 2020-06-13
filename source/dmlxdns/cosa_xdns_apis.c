@@ -1064,3 +1064,325 @@ CosaXDNSRemove
     AnscFreeMemory((ANSC_HANDLE)pMyObject);
     return returnStatus;
 }
+
+// XDNS - Copy dnsoverride entries from dnsmasq_servers.conf to resolv.conf
+//        Validate and cleanup dnsmasq_servers.conf entries
+//        return 1 - if success in copy to resolv.conf
+//        return 0 - for any error.
+int SetXdnsConfig()
+{
+        char confEntry[256] = {0};
+        char tempEntry[256] = {0};
+	errno_t                         rc1          = -1;
+
+        FILE *fp1 = NULL, *fp2 = NULL, *fp3 = NULL;
+
+        fp1 = fopen(RESOLV_CONF, "r"); // r mode - file must exist
+        if(fp1 == NULL)
+        {
+                fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_RESOLV_CONF, 'r') Error !!\n");
+                return 0; // If resolv.conf does not exist return return fail.
+        }
+
+        fp2 = fopen(DNSMASQ_SERVERS_CONF ,"r");
+        if(fp2 == NULL)
+        {
+                fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_CONF, 'r') Error !!\n");
+                fclose(fp1); fp1 = NULL;
+                return 0; //if dnsmasq_servers doesnt exist, return fail.
+        }
+
+        unlink(DNSMASQ_SERVERS_BAK);
+
+        fp3 = fopen(DNSMASQ_SERVERS_BAK ,"a");
+        if(fp3 == NULL)
+        {
+                fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_BAK, 'a') Error !!\n");
+                fclose(fp2); fp2 = NULL;
+                fclose(fp1); fp1 = NULL;
+                return 0;
+        }
+
+    //Get all entries (other than dnsoverride) from resolv.conf file//
+    while(fgets(confEntry, sizeof(confEntry), fp1) != NULL)
+    {
+            if ( strstr(confEntry, "dnsoverride"))
+                {
+                        continue;
+                }
+
+#if defined(_COSA_FOR_BCI_)
+
+            if ( strstr(confEntry, "XDNS_Multi_Profile"))
+                {
+                        continue;
+                }
+#endif
+
+        // write resolv.conf entries to temp file
+                printf("############ SetXdnsConfig() copy entry from resolv to temp: [%s]\n", confEntry);
+        fprintf(fp3, "%s", confEntry);
+    }
+
+        // Get dnsoverride entries from dnsmasq_servers file. Validate IPs.
+        // Look for default entry.
+        int founddefault = 0;
+        while(fgets(confEntry, sizeof(confEntry), fp2) != NULL)
+        {
+                //validate dnsoverride tokens
+                // cleanup invalid entries in nvram leftover from ipv4 only stack and previous formats.
+
+        	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),confEntry);
+        	if(rc1 != EOK)
+        	{
+            		ERR_CHK(rc1);
+            		continue;
+        	}
+                int gotdefault = 0;
+
+                char *token = strtok(tempEntry, " \t\n\r");
+
+#if defined(_COSA_FOR_BCI_)
+                if(!strcmp(token, "XDNS_Multi_Profile"))
+                {
+                        fprintf(fp3, "%s", confEntry);
+                        continue;
+                }
+#endif
+
+                if(token && strcmp(token, "dnsoverride") == 0)
+                {
+                        char *macaddr = NULL, *srvaddr4 = NULL;
+#ifdef FEATURE_IPV6
+                        char *srvaddr6 = NULL;
+#endif
+                        if(!(macaddr = strtok(NULL, " \t\n\r")))
+                        {
+                                printf("############ SetXdnsConfig() mac check failed!\n");
+                                continue;
+                        }
+                        else
+                        {
+                                // check if default
+                                if(strcmp(macaddr, "00:00:00:00:00:00") == 0)
+                                        gotdefault = 1;
+                        }
+
+                        if(!(srvaddr4 = strtok(NULL, " \t\n\r")))
+                        {
+                                printf("############ SetXdnsConfig() addr4 failed!\n");
+                                continue;
+                        }
+
+                        struct sockaddr_in sa;
+                        if (inet_pton(AF_INET, srvaddr4, &(sa.sin_addr)) != 1)
+                        {
+                                printf("############ SetXdnsConfig() addr4 check failed!: %s\n", srvaddr4);
+                                continue;
+                        }
+
+#ifdef FEATURE_IPV6
+                        if(!(srvaddr6 = strtok(NULL, " \t\n\r")))
+                        {
+                                printf("############ SetXdnsConfig() addr6 failed!\n");
+                                continue;
+                        }
+
+                        struct sockaddr_in6 sa6;
+                        if (inet_pton(AF_INET6, srvaddr6, &(sa6.sin6_addr)) != 1)
+                        {
+                                printf("############ SetXdnsConfig() addr6 check failed!: %s\n", srvaddr6);
+                                continue;
+                        }
+#endif
+
+                        if(gotdefault)
+                        {
+                                founddefault++;
+                                if(founddefault==1)
+                                {
+					fprintf(stderr, "%s Enabling primary XDNS: %s\n",__FUNCTION__,confEntry);
+                                }
+                                else if(founddefault==2)
+                                {
+					fprintf(stderr, "%s Enabling secondary XDNS: %s\n",__FUNCTION__,confEntry);
+                                }
+                                else
+                                {
+					fprintf(stderr, "%s Logging Invalid XDNS parameter: %s\n",__FUNCTION__,confEntry);
+                                }
+
+                        }
+
+                        //copy validated entry to temp
+                        printf("############ SetXdnsConfig() copy entry from dnsmasq_servers to temp: [%s]\n", confEntry);
+                        fprintf(fp3, "%s", confEntry);
+                }
+        }
+
+        fclose(fp3); fp3 = NULL;
+        fclose(fp2); fp2 = NULL;
+        fclose(fp1); fp1 = NULL;
+
+        // check if we found exactly primary and secondary default dnsoverride entry,
+        if(founddefault >= 1)
+        {
+                fp1 = fopen(RESOLV_CONF, "w");
+                if(fp1 == NULL)
+                {
+                        fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_RESOLV_CONF, 'w') Error !!\n");
+                        return 0;
+                }
+
+        }
+        else // default corrupted, missing or more than 1 default
+        {
+                printf("############ SetXdnsConfig() Error: dnsmasq_servers has invalid default entry! cleanup.\n");
+        }
+
+        fp2 = fopen(DNSMASQ_SERVERS_CONF,"w");
+        if(fp2 == NULL)
+        {
+                fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_CONF, 'w') Error !!\n");
+                if(fp1) fclose(fp1); fp1 = NULL;
+                return 0;
+        }
+
+        fp3 = fopen(DNSMASQ_SERVERS_BAK ,"r");  //file must exist
+        if(fp3 == NULL)
+        {
+                fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
+                fclose(fp2); fp2 = NULL;
+                if(fp1) fclose(fp1); fp1 = NULL;
+                return 0;
+        }
+
+
+        //copy back the cleaned up entries to nvram from temp
+        // copy back to resolv.conf if default entry is not corrupt
+        int gotdefault = 0;
+        while(fgets(confEntry, sizeof(confEntry), fp3) != NULL)
+        {
+                //copy back entries to resolv.conf if default is found. else keep the old resolv.
+                if(fp1)
+                {
+                        printf("############ SetXdnsConfig() copy to resolv: [%s]\n", confEntry);
+                        fprintf(fp1, "%s", confEntry);
+                }
+
+                //copy only dnsoverride entries (pruned) into nvram
+                if (strstr(confEntry, "dnsoverride"))
+                {
+
+                        printf("############ SetXdnsConfig() copy to dnsmasq_servers: [%s]\n", confEntry);
+                        fprintf(fp2, "%s", confEntry);
+                }
+
+#if defined(_COSA_FOR_BCI_)
+                if (strstr(confEntry, "XDNS_Multi_Profile"))
+                {
+
+                        printf("############ SetXdnsConfig() copy to dnsmasq_servers: [%s]\n", confEntry);
+                        fprintf(fp2, "%s", confEntry);
+                }
+#endif
+
+        }
+
+        if(fp3) fclose(fp3); fp3 = NULL;
+        if(fp2) fclose(fp2); fp2 = NULL;
+        if(fp1) fclose(fp1); fp1 = NULL;
+
+        /*change in resolv.conf. so, restarting dnsmasq*/
+        commonSyseventSet("dhcp_server-stop", "");
+        commonSyseventSet("dhcp_server-start", "");
+
+        if(founddefault >= 1)
+                return 1; //success
+        else
+                return 0; //error
+}
+
+
+// XDNS - UnetXdnsConfig: Delete all dnsoverride entries from resolv.conf
+int UnsetXdnsConfig()
+{
+        char confEntry[256] = {0};
+
+        FILE *fp1 = NULL, *fp3 = NULL;
+
+        fp1 = fopen(RESOLV_CONF, "r");
+        if(fp1 == NULL) // if we cannot open resolv.conf, return success.
+        {
+                return 1;
+        }
+
+        // 1. copy all non-dnsoverride entries from resolv.conf to temp file
+        // 2. clear resolv.conf file by opening in 'w' mode
+        // 3. copy all contents from temp file to resolv.conf
+
+        unlink(DNSMASQ_SERVERS_BAK);
+
+        fp3 = fopen(DNSMASQ_SERVERS_BAK ,"a");
+        if(fp3 == NULL)
+        {
+                fprintf(stderr,"## XDNS : UnsetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_BAK, 'a') Error !!\n");
+                fclose(fp1);
+                return 0;
+        }
+
+        while(fgets(confEntry, sizeof(confEntry), fp1) != NULL)
+        {
+                if ( strstr(confEntry, "dnsoverride"))
+                {
+                        continue; //skip
+                }
+
+#if defined(_COSA_FOR_BCI_)
+
+            if ( strstr(confEntry, "XDNS_Multi_Profile"))
+                {
+                        continue;
+                }
+#endif
+
+                printf("############ UnsetXdnsConfig() saving from resolv.conf to bak [%s]\n", confEntry);
+                fprintf(fp3, "%s", confEntry);
+        }
+
+        // now all entries (non-dnsoverride) from resolv.conf is saved to bak
+        // copy back
+        fclose(fp3); fp3 = NULL;
+        fclose(fp1); fp1 = NULL;
+
+        fp1 = fopen(RESOLV_CONF, "w");
+        if(fp1 == NULL)
+        {
+                fprintf(stderr,"## XDNS : UnsetXdnsConfig() - fopen(XDNS_RESOLV_CONF, 'w') Error !!\n");
+                return 0;
+        }
+
+        fp3 = fopen(DNSMASQ_SERVERS_BAK ,"r");  //file must exist
+        if(fp3 == NULL)
+        {
+                fprintf(stderr,"## XDNS : UnsetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
+                fclose(fp1); fp1 = NULL;
+                return 0;
+        }
+
+        while(fgets(confEntry, sizeof(confEntry), fp3) != NULL)
+        {
+                printf("############ UnsetXdnsConfig() reading from bak and writing to resolv.conf[%s]\n", confEntry);
+                fprintf(fp1, "%s", confEntry);
+        }
+
+
+
+	fprintf(stderr, "%s ############ Disabled XDNS#######\n",__FUNCTION__);
+        fclose(fp3); fp3 = NULL;
+        fclose(fp1); fp1 = NULL;
+          /*change in resolv.conf. so, restarting dnsmasq*/
+        commonSyseventSet("dhcp_server-stop", "");
+        commonSyseventSet("dhcp_server-start", "");
+        return 1;
+}
