@@ -100,6 +100,8 @@ COSA_Init
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_GetParamStringValue",  XDNS_GetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_SetParamStringValue",  XDNS_SetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_GetParamBoolValue", XDNS_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_SetParamBoolValue", XDNS_SetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_Validate",  XDNS_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_Commit",  XDNS_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "XDNS_Rollback",  XDNS_Rollback);   

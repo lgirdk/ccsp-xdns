@@ -37,6 +37,8 @@
 
     *  XDNS_GetParamStringValue
     *  XDNS_SetParamStringValue
+    *  XDNS_GetParamBoolValue
+    *  XDNS_SetParamBoolValue
     *  XDNS_Validate
     *  XDNS_Commit
     *  XDNS_Rollback
@@ -61,6 +63,23 @@ XDNS_SetParamStringValue
     );
 
 BOOL
+XDNS_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+
+BOOL
+XDNS_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+
+
+BOOL
 XDNS_Validate
     (
         ANSC_HANDLE                 hInsContext,
@@ -79,6 +98,33 @@ XDNS_Rollback
     (
         ANSC_HANDLE                 hInsContext
     );
+
+/***********************************************************************
+
+ APIs for Object:
+
+    Device.DeviceInfo.
+
+    *  XDNSDeviceInfo_GetParamBoolValue
+    *  XDNSDeviceInfo_SetParamBoolValue
+
+***********************************************************************/
+
+BOOL
+XDNSDeviceInfo_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+XDNSDeviceInfo_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+
 
 /***********************************************************************
 
