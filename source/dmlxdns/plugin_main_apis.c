@@ -168,6 +168,12 @@ CosaBackEndManagerInitialize
 
     /* Create all object */
     pMyObject->hXdns          = (ANSC_HANDLE)CosaXDNSCreate();
+
+    fprintf(stderr, "  Initializing WebConfig Framework!\n");
+
+    webConfigFrameworkInit();
+
+    fprintf(stderr, "  Initializing WebConfig Framework done!\n");
     return returnStatus;
 }
 

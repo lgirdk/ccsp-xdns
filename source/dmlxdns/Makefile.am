@@ -18,7 +18,7 @@
 ##########################################################################
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
-AM_LDFLAGS = -lccsp_common
+AM_LDFLAGS = -lccsp_common -lwebconfig_framework -lmsgpackc -ltrower-base64
 
 AM_CPPFLAGS = -Wall -Werror
 ACLOCAL_AMFLAGS = -I m4
@@ -26,5 +26,5 @@ hardware_platform = i686-linux-gnu
 
 lib_LTLIBRARIES = libdmlxdns.la
 libdmlxdns_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/dmlxdns -I$(top_srcdir)/source/XdnsSsp $(CPPFLAGS)
-libdmlxdns_la_SOURCES = cosa_apis_util.c plugin_main.c cosa_apis_util_priv.c cosa_apis_busutil.c plugin_main_apis.c cosa_xdns_apis.c cosa_xdns_dml.c
-libdmlxdns_la_LDFLAGS = -lccsp_common -lsyscfg -lsysevent -lutapi -lutctx
+libdmlxdns_la_SOURCES = cosa_apis_util.c cosa_xdns_webconfig_api.c xdns_param.c xdns_comp_helpers.c plugin_main.c cosa_apis_util_priv.c cosa_apis_busutil.c plugin_main_apis.c cosa_xdns_apis.c cosa_xdns_dml.c
+libdmlxdns_la_LDFLAGS = -lccsp_common -lsyscfg -lsysevent -lutapi -lutctx -lwebconfig_framework -lmsgpackc -ltrower-base64

@@ -24,6 +24,7 @@
 #include "plugin_main_apis.h"
 #include "ccsp_xdnsLog_wrapper.h"
 #include  "safec_lib_common.h"
+#include "cosa_xdns_webconfig_api.h"
 
 int isValidIPv4Address(char *ipAddress)
 {
@@ -402,6 +403,14 @@ XDNS_GetParamStringValue
         
     }
 
+    rc = strcmp_s("Data", strlen("Data"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+                fprintf(stderr, "%s Data Get Not supported\n",__FUNCTION__);
+                return 0;
+    }
+
     AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return -1;
 }
@@ -622,11 +631,152 @@ XDNS_SetParamStringValue
              }
         	fprintf(stderr, "%s DefaultDeviceTag is set to %s\n",__FUNCTION__,pMyObject->DefaultDeviceTag);
          }
+    else {
+         rc = strcmp_s("Data", strlen("Data"), ParamName , &ind);
+         ERR_CHK(rc);
+         if((!ind) && (rc == EOK))
+         {
+                fprintf(stderr, "%s ---------------start of b64 decode--------------\n",__FUNCTION__);
+
+                char * decodeMsg =NULL;
+                int decodeMsgSize =0;
+                int size =0;
+                int err;
+                int i=0;
+
+
+                msgpack_zone mempool;
+                msgpack_object deserialized;
+                msgpack_unpack_return unpack_ret;
+
+                decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+
+                decodeMsg = (char *) malloc(sizeof(char) * decodeMsgSize);
+
+                size = b64_decode( pString, strlen(pString), decodeMsg );
+                fprintf(stderr, "%s base64 decoded data contains %d bytes\n",__FUNCTION__);
+
+
+                msgpack_zone_init(&mempool, 2048);
+                unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
+
+                switch(unpack_ret)
+                {
+                        case MSGPACK_UNPACK_SUCCESS:
+                                fprintf(stderr, "%s MSGPACK_UNPACK_SUCCESS :%d\n",__FUNCTION__,unpack_ret);
+                        break;
+                        case MSGPACK_UNPACK_EXTRA_BYTES:
+                                fprintf(stderr, "%s MSGPACK_UNPACK_EXTRA_BYTES :%d\n",__FUNCTION__,unpack_ret);
+                        break;
+                        case MSGPACK_UNPACK_CONTINUE:
+                                fprintf(stderr, "%s MSGPACK_UNPACK_CONTINUE :%d\n",__FUNCTION__,unpack_ret);
+                        break;
+                        case MSGPACK_UNPACK_PARSE_ERROR:
+                                fprintf(stderr, "%s MSGPACK_UNPACK_PARSE_ERROR :%d\n",__FUNCTION__,unpack_ret);
+                        break;
+                        case MSGPACK_UNPACK_NOMEM_ERROR:
+                                fprintf(stderr, "%s MSGPACK_UNPACK_NOMEM_ERROR :%d\n",__FUNCTION__,unpack_ret);
+                        break;
+                        default:
+                                fprintf(stderr, "%s Message Pack decode failed with error: %d\n",__FUNCTION__,unpack_ret);
+                }
+
+                msgpack_zone_destroy(&mempool);
+                //End of msgpack decoding
+                fprintf(stderr, "%s ---------------End of b64 decode--------------\n",__FUNCTION__);
+
+                if(unpack_ret == MSGPACK_UNPACK_SUCCESS)
+                {
+                        xdnsdoc_t *xd;
+                        xd = xdnsdoc_convert( decodeMsg, size+1 );
+                        err = errno;
+                        fprintf(stderr, "%s errno: %s\n",__FUNCTION__,xdnsdoc_strerror(err));
+
+                        if ( decodeMsg )
+                        {
+                                free(decodeMsg);
+                                decodeMsg = NULL;
+                        }
+
+                        if (NULL !=xd)
+                        {
+
+
+
+                                fprintf(stderr,"xd->subdoc_name is %s\n", xd->subdoc_name);
+                                fprintf(stderr,"xd->version is %lu\n", (long)xd->version);
+                                fprintf(stderr,"xd->transaction_id %lu\n",(long) xd->transaction_id);
+                                fprintf(stderr,"xd->param->enable_xdns %s\n", (1 == xd->enable_xdns)?"true":"false");
+                                fprintf(stderr,"xd->default_ipv4 %s\n",xd->default_ipv4);
+                                fprintf(stderr,"xd->default_ipv6 %s\n",xd->default_ipv6);
+                                fprintf(stderr,"xd->default_tag %s\n",xd->default_tag);
+                                fprintf(stderr,"xd->table_param->entries_count %d\n",(int) xd->table_param->entries_count);
+                                for(i =0; i< (int) xd->table_param->entries_count; i++)
+                                {
+                                        fprintf(stderr,"xd->table_param->entries[%d].dns_mac %s\n",i, xd->table_param->entries[i].dns_mac);
+                                        fprintf(stderr,"xd->table_param->entries[%d].dns_ipv4 %s\n",i, xd->table_param->entries[i].dns_ipv4);
+                                        fprintf(stderr,"xd->table_param->entries[%d].dns_ipv6 %s\n",i, xd->table_param->entries[i].dns_ipv6);
+                                        fprintf(stderr,"xd->table_param->entries[%d].dns_tag %s\n",i, xd->table_param->entries[i].dns_tag);
+                                }
+
+                                execData *execDataxdns = NULL ;
+
+                                execDataxdns = (execData*) malloc (sizeof(execData));
+
+                                if ( execDataxdns != NULL )
+                                {
+
+                                        memset(execDataxdns, 0, sizeof(execData));
+
+                                        execDataxdns->txid = xd->transaction_id;
+                                        execDataxdns->version = xd->version;
+                                        execDataxdns->numOfEntries = xd->table_param->entries_count;
+
+                                        strncpy(execDataxdns->subdoc_name,"xdns",sizeof(execDataxdns->subdoc_name)-1);
+
+                                        execDataxdns->user_data = (void*) xd ;
+                                        execDataxdns->calcTimeout = NULL ;
+                                        execDataxdns->executeBlobRequest = Process_XDNS_WebConfigRequest;
+                                        execDataxdns->rollbackFunc = rollback_XDNS ;
+                                        execDataxdns->freeResources = freeResources_XDNS ;
+
+                                        PushBlobRequest(execDataxdns);
+
+                                        fprintf(stderr, "%s PushBlobRequest complete\n",__FUNCTION__);
+
+                                        return TRUE;
+
+                                }
+                                else
+                                {
+                                        fprintf(stderr, "%s execData memory allocation failed\n",__FUNCTION__);
+                                        xdnsdoc_destroy( xd );
+
+                                        return FALSE;
+
+                                }
+
+                        }
+                        return TRUE;
+                }
+                else
+                {
+                        if ( decodeMsg )
+                        {
+                                free(decodeMsg);
+                                decodeMsg = NULL;
+                        }
+                        fprintf(stderr, "%s Corrupted XDNS Config value\n",__FUNCTION__);
+                        return FALSE;
+                }
+	
+	 }
     else
          {
              CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : EXIT FALSE \n", __FUNCTION__ ));
              return FALSE;
          }
+	 }
          }
          }
          }
@@ -758,8 +908,8 @@ XDNS_Commit
     
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
-
-
+    if(pMyObject->DefaultDeviceDnsIPv4Changed || pMyObject->DefaultDeviceDnsIPv6Changed || pMyObject->DefaultSecondaryDeviceDnsIPv4Changed || pMyObject->DefaultSecondaryDeviceDnsIPv6Changed || pMyObject->DefaultDeviceTagChanged)
+    {
 #ifndef FEATURE_IPV6
     if(strlen(pMyObject->DefaultDeviceDnsIPv4))
     {  
@@ -830,7 +980,8 @@ XDNS_Commit
     pMyObject->DefaultSecondaryDeviceDnsIPv4Changed = FALSE;
     pMyObject->DefaultSecondaryDeviceDnsIPv6Changed = FALSE;
     pMyObject->DefaultDeviceTagChanged = FALSE;
-
+    
+    }
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
 	return TRUE;
