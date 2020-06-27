@@ -45,6 +45,9 @@
 #endif
 #include "stdlib.h"
 #include "safec_lib_common.h"
+#include "webconfig_framework.h"
+
+#define XDNS_BOOTUP_INIT_FILE "/tmp/xdns_bootup_initialized"
 
 PDSLH_CPE_CONTROLLER_OBJECT     pDslhCpeController      = NULL;
 PCOMPONENT_COMMON_DM            g_pComponent_Common_Dm  = NULL;
@@ -418,6 +421,12 @@ int main(int argc, char* argv[])
 #endif
 //    if (write_pid_file("/var/tmp/CcspTandDSsp.pid") != 0)
 //        fprintf(stderr, "%s: fail to write PID file\n", argv[0]);
+
+    check_component_crash(XDNS_BOOTUP_INIT_FILE);
+    fprintf(stderr,"XDNS:------------------touch /tmp/Xdns_bootup_initialized----------------\n");
+    char init_file[128] = {0};
+    snprintf(init_file,sizeof(init_file),"touch %s",XDNS_BOOTUP_INIT_FILE);
+    system(init_file);
 
     cmd_dispatch('e');
 

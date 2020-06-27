@@ -60,6 +60,8 @@
 
 #include "plugin_main_apis.h"
 #include "cosa_xdns_dml.h"
+#include "cosa_xdns_webconfig_api.h"
+
 
 PCOSA_BACKEND_MANAGER_OBJECT g_pCosaBEManager;
 void *                       g_pDslhDmlAgent; 
@@ -222,6 +224,14 @@ COSA_Init
 
         g_pCosaBEManager->Initialize   ((ANSC_HANDLE)g_pCosaBEManager);
     }
+
+    /* Intialixing cache first time */
+                clear_xdns_cache(&XDNS_Data_Cache);
+                clear_xdns_cache(&XDNS_tmp_bck);
+
+
+                init_xdns_cache(&XDNS_Data_Cache);
+
 
     return  0;
 

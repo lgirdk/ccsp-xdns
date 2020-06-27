@@ -96,11 +96,17 @@
                 <syntax>bool</syntax>
                 <writable>true</writable>
             </parameter>
+            <parameter>
+                <name>Data</name>
+                <type>string</type>
+                <syntax>string</syntax>
+                <writable>true</writable>
+            </parameter>
         </parameters>
         <objects>
             <object>
                 <name>DNSMappingTable</name>
-                <objectType>writableTable</objectType>
+                <objectType>dynWritableTable</objectType>
                 <maxInstance>128</maxInstance>
                 <functions>
                     <func_GetEntryCount>DNSMappingTable_GetEntryCount</func_GetEntryCount>
