@@ -370,14 +370,14 @@ void* MonitorResolvConfForChanges(void *arg)
     if (inotifyFd == -1)
         {
             CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : inotify_init error  \n", __FUNCTION__ ));
-            return;
+            return NULL;
         }
 
      wd = inotify_add_watch(inotifyFd, RESOLV_CONF, IN_ALL_EVENTS);
      if (wd == -1)
         {
             CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : inotify_add_watch error  \n", __FUNCTION__ ));
-            return;
+            return NULL;
         }
 
     CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : Watching RESOLV_CONF using wd %d  \n", __FUNCTION__ , wd));
@@ -408,7 +408,7 @@ void* MonitorResolvConfForChanges(void *arg)
         }
     }
   /*Coverity Fix CID:73768 MISSING_RETURN */
-  return;
+  return NULL;
 }
 
 
