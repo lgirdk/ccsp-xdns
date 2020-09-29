@@ -166,20 +166,77 @@ void backup_xdns_cache(xdns_cache *tmp_xdns_cache,xdns_cache *xdns_cache_bkup)
 fprintf(stderr, "%s Entered\n",__FUNCTION__);
 
 	xdns_cache_bkup->XdnsEnable = tmp_xdns_cache->XdnsEnable;
-	strcpy_s(xdns_cache_bkup->DefaultDeviceDnsIPv4, STR_SIZE,tmp_xdns_cache->DefaultDeviceDnsIPv4 );
-        strcpy_s(xdns_cache_bkup->DefaultDeviceDnsIPv6, IPV6_STR_SIZE,tmp_xdns_cache->DefaultDeviceDnsIPv6 );
-        strcpy_s(xdns_cache_bkup->DefaultSecondaryDeviceDnsIPv4, STR_SIZE,tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4 );
-        strcpy_s(xdns_cache_bkup->DefaultSecondaryDeviceDnsIPv6, IPV6_STR_SIZE,tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6 );
-        strcpy_s(xdns_cache_bkup->DefaultDeviceTag, STR_SIZE,tmp_xdns_cache->DefaultDeviceTag );
+        errno_t                         rc                  = EOK;
+        char *pDefaultDeviceDnsIPv4 = xdns_cache_bkup->DefaultDeviceDnsIPv4;
+        char *pDefaultDeviceDnsIPv6 = xdns_cache_bkup->DefaultDeviceDnsIPv6;
+        char *pDefaultSecondaryDeviceDnsIPv4 = xdns_cache_bkup->DefaultSecondaryDeviceDnsIPv4;
+        char *pDefaultSecondaryDeviceDnsIPv6 = xdns_cache_bkup->DefaultSecondaryDeviceDnsIPv6;
+        char *pDefaultDeviceTag = xdns_cache_bkup->DefaultDeviceTag;
+
+        rc = strcpy_s(pDefaultDeviceDnsIPv4, STR_SIZE,tmp_xdns_cache->DefaultDeviceDnsIPv4 );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return;
+        }
+        rc = strcpy_s(pDefaultDeviceDnsIPv6, IPV6_STR_SIZE,tmp_xdns_cache->DefaultDeviceDnsIPv6 );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return;
+        }
+        rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv4, STR_SIZE,tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4 );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return;
+        }
+        rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv6, IPV6_STR_SIZE,tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6 );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return;
+        }
+        rc = strcpy_s(pDefaultDeviceTag, STR_SIZE,tmp_xdns_cache->DefaultDeviceTag );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return;
+        }
         xdns_cache_bkup->Tablecount=tmp_xdns_cache->Tablecount;
 
         int i;
         for(i=0;i<(tmp_xdns_cache->Tablecount);i++)
        	{
-		strcpy_s(xdns_cache_bkup->XDNSTableList[i].MacAddress,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].MacAddress );
-		strcpy_s(xdns_cache_bkup->XDNSTableList[i].DnsIPv4,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].DnsIPv4 );
-		strcpy_s(xdns_cache_bkup->XDNSTableList[i].DnsIPv6,IPV6_STR_SIZE,tmp_xdns_cache->XDNSTableList[i].DnsIPv6 );
-		strcpy_s(xdns_cache_bkup->XDNSTableList[i].Tag,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].Tag );
+            char *pMacAddress = xdns_cache_bkup->XDNSTableList[i].MacAddress;
+            char *pDnsIPv4 = xdns_cache_bkup->XDNSTableList[i].DnsIPv4;
+            char *pDnsIPv6 = xdns_cache_bkup->XDNSTableList[i].DnsIPv6;
+            char *pTag = xdns_cache_bkup->XDNSTableList[i].Tag;
+
+            rc = strcpy_s(pMacAddress,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].MacAddress );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return;
+            }
+            rc = strcpy_s(pDnsIPv4,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].DnsIPv4 );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return;
+            }
+            rc = strcpy_s(pDnsIPv6,IPV6_STR_SIZE,tmp_xdns_cache->XDNSTableList[i].DnsIPv6 );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return;
+            }
+            rc = strcpy_s(pTag,STR_SIZE,tmp_xdns_cache->XDNSTableList[i].Tag );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return;
+            }
         }
 
 
@@ -216,15 +273,47 @@ void init_xdns_cache(xdns_cache *tmp_xdns_cache)
 {
 	PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
         fprintf(stderr, "%s Entered\n",__FUNCTION__);
-	
+
+	errno_t                         rc                  = EOK;	
 	char buf[5]={0};
 	syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS",buf, 5);
 	tmp_xdns_cache->XdnsEnable=atoi(buf);
-	strcpy_s(tmp_xdns_cache->DefaultDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv4),pMyObject->DefaultDeviceDnsIPv4 );
-	strcpy_s(tmp_xdns_cache->DefaultDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv6),pMyObject->DefaultDeviceDnsIPv6 );
-	strcpy_s(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4),pMyObject->DefaultSecondaryDeviceDnsIPv4 );
-	strcpy_s(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6),pMyObject->DefaultSecondaryDeviceDnsIPv6 );
-	strcpy_s(tmp_xdns_cache->DefaultDeviceTag, sizeof(tmp_xdns_cache->DefaultDeviceTag),pMyObject->DefaultDeviceTag );
+	char *pDefaultDeviceDnsIPv4 = tmp_xdns_cache->DefaultDeviceDnsIPv4;
+	char *pDefaultDeviceDnsIPv6 = tmp_xdns_cache->DefaultDeviceDnsIPv6;
+	char *pDefaultSecondaryDeviceDnsIPv4 = tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4;
+	char *pDefaultSecondaryDeviceDnsIPv6 = tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6;
+	char *pDefaultDeviceTag = tmp_xdns_cache->DefaultDeviceTag;
+
+	rc = strcpy_s(pDefaultDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv4),pMyObject->DefaultDeviceDnsIPv4 );
+	if(rc != EOK)
+	{
+	    ERR_CHK(rc);
+	    return;
+	}
+	rc = strcpy_s(pDefaultDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv6),pMyObject->DefaultDeviceDnsIPv6 );
+	if(rc != EOK)
+	{
+	    ERR_CHK(rc);
+	    return;
+	}
+	rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4),pMyObject->DefaultSecondaryDeviceDnsIPv4 );
+	if(rc != EOK)
+	{
+	    ERR_CHK(rc);
+	    return;
+	}
+	rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6),pMyObject->DefaultSecondaryDeviceDnsIPv6 );
+	if(rc != EOK)
+	{
+	    ERR_CHK(rc);
+	    return;
+	}
+	rc = strcpy_s(pDefaultDeviceTag, sizeof(tmp_xdns_cache->DefaultDeviceTag),pMyObject->DefaultDeviceTag );
+	if(rc != EOK)
+	{
+	    ERR_CHK(rc);
+	    return;
+	}
 	tmp_xdns_cache->Tablecount=(pMyObject->ulXDNSNextInstanceNumber)-1;
 
 	int i;
@@ -237,10 +326,35 @@ void init_xdns_cache(xdns_cache *tmp_xdns_cache)
     		     {
         			pCxtLink      = ACCESS_COSA_CONTEXT_XDNS_LINK_OBJECT(pSListEntry);
 				PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pCxtLink->hContext;
-				strcpy_s(tmp_xdns_cache->XDNSTableList[i].MacAddress,STR_SIZE,pDnsTableEntry->MacAddress );
-				strcpy_s(tmp_xdns_cache->XDNSTableList[i].DnsIPv4,STR_SIZE,pDnsTableEntry->DnsIPv4 );
-				strcpy_s(tmp_xdns_cache->XDNSTableList[i].DnsIPv6,IPV6_STR_SIZE,pDnsTableEntry->DnsIPv6 );
-				strcpy_s(tmp_xdns_cache->XDNSTableList[i].Tag,STR_SIZE,pDnsTableEntry->Tag );
+				char *pMacAddress = tmp_xdns_cache->XDNSTableList[i].MacAddress;
+				char *pDnsIPv4 = tmp_xdns_cache->XDNSTableList[i].DnsIPv4;
+				char *pDnsIPv6 = tmp_xdns_cache->XDNSTableList[i].DnsIPv6;
+				char *pTag = tmp_xdns_cache->XDNSTableList[i].Tag;
+
+				rc = strcpy_s(pMacAddress,STR_SIZE,pDnsTableEntry->MacAddress );
+				if(rc != EOK)
+				{
+				    ERR_CHK(rc);
+				    return;
+				}
+				rc = strcpy_s(pDnsIPv4,STR_SIZE,pDnsTableEntry->DnsIPv4 );
+				if(rc != EOK)
+				{
+				    ERR_CHK(rc);
+				    return;
+				}
+				rc = strcpy_s(pDnsIPv6,IPV6_STR_SIZE,pDnsTableEntry->DnsIPv6 );
+				if(rc != EOK)
+				{
+				    ERR_CHK(rc);
+				    return;
+				}
+				rc = strcpy_s(pTag,STR_SIZE,pDnsTableEntry->Tag );
+				if(rc != EOK)
+				{
+				    ERR_CHK(rc);
+				    return;
+				}
    	 	    }
 	}
 
@@ -285,8 +399,6 @@ void webConfigFrameworkInit()
 int apply_XDNS_cache_ToDB(xdns_cache *tmp_xdns_cache)
 {
 	PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
-    	errno_t                         rc                  = -1;
-    	int                             ind                 = -1;
 
 	char Entry[DATA_BLOCK_SIZE]={0};
 	char* def_mac= "00:00:00:00:00:00";
@@ -378,32 +490,71 @@ int apply_XDNS_cache_ToDB(xdns_cache *tmp_xdns_cache)
 int set_xdns_conf(xdnsdoc_t *xd, xdns_cache *tmp_xdns_cache)
 {
         fprintf(stderr, "%s Entered\n",__FUNCTION__);
+        errno_t                         rc                  = EOK;
 
 	tmp_xdns_cache->XdnsEnable = xd->enable_xdns;
         
 	if((INVALID_IP != CheckIfIpIsValid(xd->default_ipv4)) && (INVALID_IP != CheckIfIpIsValid(xd->default_ipv6)))
 	{
+            char *pDefaultDeviceDnsIPv4 = tmp_xdns_cache->DefaultDeviceDnsIPv4;
+            char *pDefaultDeviceDnsIPv6 = tmp_xdns_cache->DefaultDeviceDnsIPv6;
 
-        strcpy_s(tmp_xdns_cache->DefaultDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv4),xd->default_ipv4 );
-        strcpy_s(tmp_xdns_cache->DefaultDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv6),xd->default_ipv6 );
+            rc = strcpy_s(pDefaultDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv4),xd->default_ipv4 );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return 1;
+            }
+            rc = strcpy_s(pDefaultDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultDeviceDnsIPv6),xd->default_ipv6 );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return 1;
+            }
 	}
 	else
 	{
 		fprintf(stderr,"%s INVALID_IP XDNS Default IP\n",__FUNCTION__);
 		return INVALID_IP ;
 	}
-        strcpy_s(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4),"" );
-        strcpy_s(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6),"" );
-        strcpy_s(tmp_xdns_cache->DefaultDeviceTag, sizeof(tmp_xdns_cache->DefaultDeviceTag),xd->default_tag );
+        char *pDefaultSecondaryDeviceDnsIPv4 = tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4;
+        char *pDefaultSecondaryDeviceDnsIPv6 = tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6;
+        char *pDefaultDeviceTag = tmp_xdns_cache->DefaultDeviceTag;
+
+        rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv4, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv4),"" );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return 1;
+        }
+        rc = strcpy_s(pDefaultSecondaryDeviceDnsIPv6, sizeof(tmp_xdns_cache->DefaultSecondaryDeviceDnsIPv6),"" );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return 1;
+        }
+        rc = strcpy_s(pDefaultDeviceTag, sizeof(tmp_xdns_cache->DefaultDeviceTag),xd->default_tag );
+        if(rc != EOK)
+        {
+            ERR_CHK(rc);
+            return 1;
+        }
         tmp_xdns_cache->Tablecount=xd->table_param->entries_count;
 
 
         int i;
-        for(i=0;i<(xd->table_param->entries_count);i++)
+        for(i=0;i<(int)(xd->table_param->entries_count);i++)
         {
 		if(INVALID_MAC != CheckIfMacIsValid(xd->table_param->entries[i].dns_mac))
 		{
-			strcpy_s(tmp_xdns_cache->XDNSTableList[i].MacAddress,STR_SIZE,xd->table_param->entries[i].dns_mac );
+			char *pMacAddress = tmp_xdns_cache->XDNSTableList[i].MacAddress;
+
+			rc = strcpy_s(pMacAddress,STR_SIZE,xd->table_param->entries[i].dns_mac );
+			if(rc != EOK)
+			{
+			    ERR_CHK(rc);
+			    return 1;
+			}
 		}
 		else
 		{
@@ -413,20 +564,38 @@ int set_xdns_conf(xdnsdoc_t *xd, xdns_cache *tmp_xdns_cache)
 
         	if((INVALID_IP != CheckIfIpIsValid(xd->table_param->entries[i].dns_ipv4)) && (INVALID_IP != CheckIfIpIsValid(xd->table_param->entries[i].dns_ipv6)))
         	{
+                char *pDnsIPv4 = tmp_xdns_cache->XDNSTableList[i].DnsIPv4;
+                char *pDnsIPv6 = tmp_xdns_cache->XDNSTableList[i].DnsIPv6;
 
-                                strcpy_s(tmp_xdns_cache->XDNSTableList[i].DnsIPv4,STR_SIZE,xd->table_param->entries[i].dns_ipv4 );
-                                strcpy_s(tmp_xdns_cache->XDNSTableList[i].DnsIPv6,IPV6_STR_SIZE,xd->table_param->entries[i].dns_ipv6 );
+                rc = strcpy_s(pDnsIPv4,STR_SIZE,xd->table_param->entries[i].dns_ipv4 );
+                if(rc != EOK)
+                {
+                    ERR_CHK(rc);
+                    return 1;
+                }
+                rc = strcpy_s(pDnsIPv6,IPV6_STR_SIZE,xd->table_param->entries[i].dns_ipv6 );
+                if(rc != EOK)
+                {
+                    ERR_CHK(rc);
+                    return 1;
+                }
         	}
         	else
         	{
                 	fprintf(stderr,"%s INVALID_IP XDNS Default IP\n",__FUNCTION__);
                 	return INVALID_IP ;
         	}
-                                strcpy_s(tmp_xdns_cache->XDNSTableList[i].Tag,STR_SIZE,xd->table_param->entries[i].dns_tag );
+            char *pTag = tmp_xdns_cache->XDNSTableList[i].Tag;
+            rc = strcpy_s(pTag,STR_SIZE,xd->table_param->entries[i].dns_tag );
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+                return 1;
+            }
         }
 
 	
-	return 0;
+	return (rc == EOK? 0: 1);
 		
 }
 
@@ -450,7 +619,7 @@ pErr Process_XDNS_WebConfigRequest(void *Data)
         xdnsdoc_t *xd = (xdnsdoc_t *) Data ;
 
 
-	fprintf(stderr, "%s : xd->table_param->entries_count is %ld\n",__FUNCTION__,xd->table_param->entries_count);
+	fprintf(stderr, "%s : xd->table_param->entries_count is %ld\n",__FUNCTION__,(long int)xd->table_param->entries_count);
 	fprintf(stderr, "XDNS configurartion recieved\n");
 
 	/*clean Backup cache and take back of orginal cache*/

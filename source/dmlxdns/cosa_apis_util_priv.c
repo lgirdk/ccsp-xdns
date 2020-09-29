@@ -90,6 +90,8 @@ CosaUtilGetStaticRouteTablePriv
         StaticRoute                 **out_sroute
     )
 {
+    UNREFERENCED_PARAMETER(count);
+    UNREFERENCED_PARAMETER(out_sroute);
     return ANSC_STATUS_SUCCESS;
 }
 

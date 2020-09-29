@@ -85,7 +85,6 @@ COSA_Init
     COSAGetHandleProc               pGetRegistryRootFolder      = (COSAGetHandleProc                 )NULL;
     COSAGetInstanceNumberByIndexProc
                                     pGetInsNumberByIndexProc    = (COSAGetInstanceNumberByIndexProc  )NULL;
-    COSAGetHandleProc               pGetMessageBusHandleProc    = (COSAGetHandleProc                 )NULL;
     COSAGetInterfaceByNameProc      pGetInterfaceByNameProc     = (COSAGetInterfaceByNameProc        )NULL;
 
 
@@ -191,7 +190,7 @@ COSA_Init
     }
 
     /* Get Message Bus Handle */
-    g_GetMessageBusHandle = (PFN_CCSPCCDM_APPLY_CHANGES)pPlugInfo->AcquireFunction("COSAGetMessageBusHandle");
+    g_GetMessageBusHandle = (COSAGetHandleProc)pPlugInfo->AcquireFunction("COSAGetMessageBusHandle");
     if ( g_GetMessageBusHandle == NULL )
     {
         goto EXIT;
@@ -209,7 +208,7 @@ COSA_Init
     {
         char*  tmpSubsystemPrefix;
 
-        if ( tmpSubsystemPrefix = g_GetSubsystemPrefix(g_pDslhDmlAgent) )
+        if (( tmpSubsystemPrefix = g_GetSubsystemPrefix(g_pDslhDmlAgent) ))
         {
             AnscCopyString(g_SubSysPrefix_Irep, tmpSubsystemPrefix);
         }
@@ -298,6 +297,7 @@ COSA_IsObjSupported
         char*                        pObjName
     )
 {
+    UNREFERENCED_PARAMETER(pObjName);
     /* COSA XML file will be generated based on standard TR-xxx data model definition.
      * By default, all the objects are expected to supported in the libraray.
      * Realistically, we will have certain ones cannot be supported at the early stage of development.

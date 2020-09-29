@@ -70,6 +70,8 @@
 #include "sysevent/sysevent.h"
 #include "utapi/utapi.h"
 #include "utapi/utapi_util.h"
+#include "webconfig_framework.h"
+#include "cosa_xdns_webconfig_api.h"
 
 COSAGetParamValueStringProc        g_GetParamValueString;
 COSAGetParamValueUlongProc         g_GetParamValueUlong;
@@ -109,7 +111,6 @@ CosaBackEndManagerCreate
         VOID
     )
 {
-    ANSC_STATUS                     returnStatus = ANSC_STATUS_SUCCESS;
     PCOSA_BACKEND_MANAGER_OBJECT    pMyObject    = (PCOSA_BACKEND_MANAGER_OBJECT)NULL;
     /*
         * We create object by first allocating memory for holding the variables and member functions.
