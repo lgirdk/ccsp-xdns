@@ -106,7 +106,7 @@ ssp_XdnsMbi_MessageBusEngage
                 component_id,
                 config_file,
                 &bus_handle,
-                Ansc_AllocateMemory_Callback,           /* mallocfc, use default */
+                (CCSP_MESSAGE_BUS_MALLOC) Ansc_AllocateMemory_Callback,           /* mallocfc, use default */
                 Ansc_FreeMemory_Callback            /* freefc,   use default */
             );
 
@@ -119,7 +119,8 @@ ssp_XdnsMbi_MessageBusEngage
     ssp_XdnsMbi_WaitConditionReady(bus_handle, CCSP_DBUS_PSM, CCSP_DBUS_PATH_PSM, component_id);
     CcspTraceInfo(("!!! Connected to message bus... bus_handle: 0x%08X !!!\n", bus_handle));
     g_MessageBusHandle_Irep = bus_handle;
-    rc = strcpy_s( g_SubSysPrefix_Irep, sizeof( g_SubSysPrefix_Irep),g_Subsystem);
+    char *pSubsystem = g_Subsystem;
+    rc = strcpy_s( g_SubSysPrefix_Irep, sizeof( g_SubSysPrefix_Irep),pSubsystem);
     if (rc != EOK)
     {
         ERR_CHK(rc);
@@ -225,6 +226,7 @@ ssp_XdnsMbi_Initialize
         void * user_data
     )
 {
+    UNREFERENCED_PARAMETER(user_data);
     ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);
@@ -238,6 +240,7 @@ ssp_XdnsMbi_Finalize
         void * user_data
     )
 {
+    UNREFERENCED_PARAMETER(user_data);
     ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);
@@ -253,6 +256,7 @@ ssp_XdnsMbi_Buscheck
     )
 {
     printf("In %s()\n", __FUNCTION__);
+    UNREFERENCED_PARAMETER(user_data);
 
     return 0;
 }
@@ -264,6 +268,8 @@ ssp_XdnsMbi_FreeResources
         void * user_data
     )
 {
+    UNREFERENCED_PARAMETER(user_data);
+    UNREFERENCED_PARAMETER(priority);
     ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);

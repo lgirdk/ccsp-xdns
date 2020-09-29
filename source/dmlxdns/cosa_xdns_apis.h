@@ -32,7 +32,7 @@
 #ifdef FEATURE_IPV6
 #define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s %63s"
 #else
-#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s" 
+#define XDNS_ENTRY_FORMAT  "%63s %63s %63s %63s"
 #endif
 
 #define  COSA_CONTEXT_XDNS_LINK_CLASS_CONTENT                                  \
@@ -67,22 +67,22 @@ typedef  struct
 _COSA_DML_XDNS_MACDNS_MAPPING_ENTRY
 {
     ULONG                           InstanceNumber;
-    UCHAR                           MacAddress[256];  /* MacAddress string address */
-    BOOL                            MacAddressChanged;                                         
-    UCHAR                           DnsIPv4[256];  /* IPv4 or IPv4 string address */
-    BOOL                            DnsIPv4Changed;                                         
-    UCHAR                           DnsIPv6[256];  /* IPv6 or IPv6 string address */
-    BOOL                            DnsIPv6Changed;                                         
-    UCHAR                           Tag[256];  /* Tag string address */
-    BOOL                            TagChanged;                                         
+    CHAR                            MacAddress[256];  /* MacAddress string address */
+    BOOL                            MacAddressChanged;
+    CHAR                            DnsIPv4[256];  /* IPv4 or IPv4 string address */
+    BOOL                            DnsIPv4Changed;
+    CHAR                            DnsIPv6[256];  /* IPv6 or IPv6 string address */
+    BOOL                            DnsIPv6Changed;
+    CHAR                            Tag[256];  /* Tag string address */
+    BOOL                            TagChanged;
 }
 COSA_DML_XDNS_MACDNS_MAPPING_ENTRY,  *PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY;
 
 typedef  struct
 _PCOSA_DML_MAPPING_CONTAINER
 {
-    ULONG                      	    XDNSEntryCount;                                    
-    PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY    pXDNSTable;    
+    ULONG                      	    XDNSEntryCount;
+    PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY    pXDNSTable;
 }
 COSA_DML_MAPPING_CONTAINER,  *PCOSA_DML_MAPPING_CONTAINER;
 
@@ -91,15 +91,15 @@ COSA_DML_MAPPING_CONTAINER,  *PCOSA_DML_MAPPING_CONTAINER;
     COSA_BASE_CONTENT                                                                       \
 	ULONG                       MaxInstanceNumber;                                    \
 	ULONG                       ulXDNSNextInstanceNumber;                                    \
-    UCHAR                       DefaultDeviceDnsIPv4[256];                                         \
+    CHAR                        DefaultDeviceDnsIPv4[256];                                         \
     BOOL                        DefaultDeviceDnsIPv4Changed;                                         \
-    UCHAR                       DefaultDeviceDnsIPv6[256];                                         \
+    CHAR                        DefaultDeviceDnsIPv6[256];                                         \
     BOOL                        DefaultDeviceDnsIPv6Changed;                                         \
-    UCHAR                       DefaultSecondaryDeviceDnsIPv4[256];                                         \
+    CHAR                        DefaultSecondaryDeviceDnsIPv4[256];                                         \
     BOOL                        DefaultSecondaryDeviceDnsIPv4Changed;                                         \
-    UCHAR                       DefaultSecondaryDeviceDnsIPv6[256];                                         \
+    CHAR                        DefaultSecondaryDeviceDnsIPv6[256];                                         \
     BOOL                        DefaultSecondaryDeviceDnsIPv6Changed;                                         \
-    UCHAR                       DefaultDeviceTag[256];                                            \   
+    CHAR                        DefaultDeviceTag[256];                                            \
     BOOL                        DefaultDeviceTagChanged;                                         \
     SLIST_HEADER                XDNSDeviceList;                                        \
     PCOSA_DML_MAPPING_CONTAINER    pMappingContainer;                                        \
@@ -139,6 +139,9 @@ CosaXDNSRemove
         ANSC_HANDLE                 hThisObject
     );
 
+void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE]);
+void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject);
+void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZE], int count);
 void ResetDnsmasqConfFile();
 void AppendDnsmasqConfEntry(char (*string1)[MAX_BUF_SIZE], int count);
 int SetXdnsConfig();

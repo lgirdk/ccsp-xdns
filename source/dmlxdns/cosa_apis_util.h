@@ -82,6 +82,12 @@ typedef struct StaticRoute
     char         dest_intf[10]; 
 }StaticRoute;
 
+ANSC_STATUS
+CosaUtilGetStaticRouteTablePriv
+    (
+        UINT                        *count,
+        StaticRoute                 **out_sroute
+    );
 
 ULONG
 CosaUtilGetIfAddr

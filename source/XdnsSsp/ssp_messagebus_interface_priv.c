@@ -76,6 +76,10 @@ extern  PCOMPONENT_COMMON_DM            g_pComponent_Common_Dm;
 
 void ssp_XdnsMbi_WaitConditionReady(void* bus_handle, const char* dst_component_id, char* dbus_path, char *src_component_id)
 {
+    UNREFERENCED_PARAMETER(src_component_id);
+    UNREFERENCED_PARAMETER(dbus_path);
+    UNREFERENCED_PARAMETER(dst_component_id);
+    UNREFERENCED_PARAMETER(bus_handle);
 	return;
 }
 

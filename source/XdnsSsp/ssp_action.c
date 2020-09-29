@@ -97,8 +97,12 @@ extern  PCCSP_FC_CONTEXT                 pXdnsFcContext;
 extern  PCCSP_CCD_INTERFACE              pXdnsCcdIf;
 extern  ANSC_HANDLE                     bus_handle;
 extern  char                            g_Subsystem[32];
-
-static  COMPONENT_COMMON_DM             CommonDm = {0};
+ANSC_HANDLE
+COSAAcquireFunction
+    (
+        char*                       pApiName
+    );
+//static  COMPONENT_COMMON_DM             CommonDm = {0};
 
 #define  COSA_PLUGIN_XML_FILE           "/usr/ccsp/xdns/CcspXdns_dm.xml"
 
@@ -283,6 +287,7 @@ ssp_XdnsCCDmGetComponentName
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->Name;
 }
 
@@ -293,6 +298,7 @@ ssp_XdnsCCDmGetComponentVersion
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->Version;
 }
 
@@ -303,6 +309,7 @@ ssp_XdnsCCDmGetComponentAuthor
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->Author;
 }
 
@@ -313,6 +320,7 @@ ssp_XdnsCCDmGetComponentHealth
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->Health;
 }
 
@@ -323,6 +331,7 @@ ssp_XdnsCCDmGetComponentState
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->State;
 }
 
@@ -334,6 +343,7 @@ ssp_XdnsCCDmGetLoggingEnabled
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->LogEnable;
 }
 
@@ -345,6 +355,7 @@ ssp_XdnsCCDmSetLoggingEnabled
         BOOL                            bEnabled
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     /*CommonDm.LogEnable = bEnabled;*/
     if(g_pComponent_Common_Dm->LogEnable == bEnabled) return ANSC_STATUS_SUCCESS;
     g_pComponent_Common_Dm->LogEnable = bEnabled;
@@ -364,6 +375,7 @@ ssp_XdnsCCDmGetLoggingLevel
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->LogLevel;
 }
 
@@ -375,6 +387,7 @@ ssp_XdnsCCDmSetLoggingLevel
         ULONG                           LogLevel
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     /*CommonDm.LogLevel = LogLevel;*/
     if(g_pComponent_Common_Dm->LogLevel == LogLevel) return ANSC_STATUS_SUCCESS;
     g_pComponent_Common_Dm->LogLevel = LogLevel;
@@ -392,6 +405,7 @@ ssp_XdnsCCDmGetMemMaxUsage
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_ulAllocatedSizePeak;
 }
 
@@ -402,6 +416,7 @@ ssp_XdnsCCDmGetMemMinUsage
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     return g_pComponent_Common_Dm->MemMinUsage;
 }
 
@@ -412,6 +427,7 @@ ssp_XdnsCCDmGetMemConsumed
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     LONG             size = 0;
 
     size = AnscGetComponentMemorySize(CCSP_COMPONENT_NAME_XDNS);
@@ -428,6 +444,7 @@ ssp_XdnsCCDmApplyChanges
         ANSC_HANDLE                     hThisObject
     )
 {
+    UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS                         returnStatus    = ANSC_STATUS_SUCCESS;
     /* Assume the parameter settings are committed immediately. */
     /*g_pComponent_Common_Dm->LogEnable = CommonDm.LogEnable;

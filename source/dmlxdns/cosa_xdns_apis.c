@@ -106,7 +106,8 @@ void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
     {
         if(strstr(dnsmasqConfEntry, macaddress) != NULL)
             {
-               rc = strcpy_s(defaultEntry[count], MAX_BUF_SIZE , dnsmasqConfEntry);
+               char *pDnsmasqConfEntry = dnsmasqConfEntry;
+               rc = strcpy_s(defaultEntry[count], MAX_BUF_SIZE , pDnsmasqConfEntry);
                if(rc != EOK)
                {
                    ERR_CHK(rc);
@@ -140,7 +141,7 @@ void RefreshResolvConfEntry()
 #if defined(_COSA_FOR_BCI_)
 
         char multiprofile_flag[20]={0};
-        int mc = syscfg_get(NULL, "MultiProfileXDNS", multiprofile_flag, sizeof(multiprofile_flag));
+        syscfg_get(NULL, "MultiProfileXDNS", multiprofile_flag, sizeof(multiprofile_flag));
         if( multiprofile_flag[0] == '1' &&  multiprofile_flag[1] == '\0')
         { 
                 fprintf(stderr,"## CcspXDNS #### Multi Profile XDNS feature is Enabled\n");
@@ -238,7 +239,8 @@ void RefreshResolvConfEntry()
     	}
 
     	char tempEntry[256] = {0};
-	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),dnsmasqConfEntry);
+	char *pDnsmasqConfEntry = dnsmasqConfEntry;
+	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),pDnsmasqConfEntry);
         if(rc1 != EOK)
         {
             ERR_CHK(rc1);
@@ -360,7 +362,8 @@ void RefreshResolvConfEntry()
  
 void* MonitorResolvConfForChanges(void *arg)
 {
-    int inotifyFd, wd, j;
+    UNREFERENCED_PARAMETER(arg);
+    int inotifyFd, wd;
     char buf[BUF_LEN] __attribute__ ((aligned(8)));
     ssize_t numRead;
     char *p;
@@ -370,14 +373,14 @@ void* MonitorResolvConfForChanges(void *arg)
     if (inotifyFd == -1)
         {
             CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : inotify_init error  \n", __FUNCTION__ ));
-            return;
+            return NULL;
         }
 
      wd = inotify_add_watch(inotifyFd, RESOLV_CONF, IN_ALL_EVENTS);
      if (wd == -1)
         {
             CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : inotify_add_watch error  \n", __FUNCTION__ ));
-            return;
+            return NULL;
         }
 
     CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : Watching RESOLV_CONF using wd %d  \n", __FUNCTION__ , wd));
@@ -395,7 +398,7 @@ void* MonitorResolvConfForChanges(void *arg)
             CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : read error numRead %d  \n", __FUNCTION__ , numRead));
         }
 
-    CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : Read %ld bytes from inotify fd\n \n", __FUNCTION__ , numRead));
+    CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : Read %ld bytes from inotify fd\n \n", __FUNCTION__ ,(LONG)numRead));
 
      /* Process all of the events in buffer returned by read() */
 
@@ -408,7 +411,7 @@ void* MonitorResolvConfForChanges(void *arg)
         }
     }
   /*Coverity Fix CID:73768 MISSING_RETURN */
-  return;
+  return NULL;
 }
 
 
@@ -510,9 +513,7 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
 {
     char resolvConfEntry[256] = {0};
     char buf[256] = {0};
-    char resolvConfFirstIPv4Nameserver[256] = {0};
-    char resolvConfFirstIPv6Nameserver[256] = {0};
-    char dnsmasqConfOverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
+    char dnsmasqConfOverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {{0,0}};
     char tokenIPv4[256] = {0};
     char tokenIPv6[256] = {0};
     char* token = NULL;;
@@ -520,7 +521,6 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     int foundIPv4 = 0;
     int foundIPv6 = 0;
     errno_t rc = -1;
-    int ind = -1;
 
 	//Step 1: Open RESOLV_CONF //
 	FILE *fp1 = NULL;
@@ -535,7 +535,8 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
    {
         if(strstr(resolvConfEntry, "nameserver") != NULL)
                 {
-		rc = strcpy_s(buf,sizeof(buf),resolvConfEntry);
+		char *pResolvConfEntry = resolvConfEntry;
+		rc = strcpy_s(buf,sizeof(buf),pResolvConfEntry);
                 if(rc != EOK)
                 {
                     ERR_CHK(rc);
@@ -590,8 +591,10 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
   
         //intilalization of Default XDNS parametrs to NULL
 	//store values read from resolv.conf to TR181 object, could be empty
+    char *pTokenIPv6 = tokenIPv6;
+    char *pTokenIPv4 = tokenIPv4;
    if(!(isValidIPv4Address(pMyObject->DefaultDeviceDnsIPv4))){
-    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv4, sizeof(pMyObject->DefaultDeviceDnsIPv4),tokenIPv4);
+    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv4, sizeof(pMyObject->DefaultDeviceDnsIPv4),pTokenIPv4);
     if(rc != EOK)
     {
         ERR_CHK(rc);
@@ -600,7 +603,7 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     }
     
     if(!(isValidIPv6Address(pMyObject->DefaultDeviceDnsIPv6))){
-    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv6,sizeof(pMyObject->DefaultDeviceDnsIPv6) ,tokenIPv6);
+    rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv6,sizeof(pMyObject->DefaultDeviceDnsIPv6) ,pTokenIPv6);
     if(rc != EOK)
     {
         ERR_CHK(rc);
@@ -943,7 +946,6 @@ CosaXDNSCreate
         VOID
     )
 {
-    ANSC_STATUS                     returnStatus = ANSC_STATUS_SUCCESS;
     PCOSA_DATAMODEL_XDNS            pMyObject    = (PCOSA_DATAMODEL_XDNS)NULL;
 
     /*
@@ -1000,8 +1002,6 @@ CosaXDNSInitialize
 {
     ANSC_STATUS                     returnStatus         = ANSC_STATUS_SUCCESS;
     PCOSA_DATAMODEL_XDNS            pMyObject            = (PCOSA_DATAMODEL_XDNS )hThisObject;
-	PCOSA_DML_MAPPING_CONTAINER    pMappingContainer            = (PCOSA_DML_MAPPING_CONTAINER)NULL;
-    pthread_t tid;
 
     AnscSListInitializeHeader( &pMyObject->XDNSDeviceList );
     pMyObject->MaxInstanceNumber        = 0;
@@ -1023,7 +1023,7 @@ CosaXDNSInitialize
         return ANSC_STATUS_FAILURE;
     }
 */
-    printf("#### XDNS - CosaXDNSInitialize done. return %d", returnStatus);
+    printf("#### XDNS - CosaXDNSInitialize done. return %ld", returnStatus);
 
     return returnStatus;
 }
@@ -1145,8 +1145,8 @@ int SetXdnsConfig()
         {
                 //validate dnsoverride tokens
                 // cleanup invalid entries in nvram leftover from ipv4 only stack and previous formats.
-
-        	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),confEntry);
+        	char *pConfEntry = confEntry;
+        	rc1 = strcpy_s(tempEntry, sizeof(tempEntry),pConfEntry);
         	if(rc1 != EOK)
         	{
             		ERR_CHK(rc1);
@@ -1258,7 +1258,7 @@ int SetXdnsConfig()
         if(fp2 == NULL)
         {
                 fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_CONF, 'w') Error !!\n");
-                if(fp1) fclose(fp1); fp1 = NULL;
+                if(fp1){ fclose(fp1);} fp1 = NULL;
                 return 0;
         }
 
@@ -1267,14 +1267,13 @@ int SetXdnsConfig()
         {
                 fprintf(stderr,"## XDNS : SetXdnsConfig() - fopen(XDNS_DNSMASQ_SERVERS_BAK, 'r') Error !!\n");
                 fclose(fp2); fp2 = NULL;
-                if(fp1) fclose(fp1); fp1 = NULL;
+                if(fp1){ fclose(fp1);} fp1 = NULL;
                 return 0;
         }
 
 
         //copy back the cleaned up entries to nvram from temp
         // copy back to resolv.conf if default entry is not corrupt
-        int gotdefault = 0;
         while(fgets(confEntry, sizeof(confEntry), fp3) != NULL)
         {
                 //copy back entries to resolv.conf if default is found. else keep the old resolv.
@@ -1303,9 +1302,9 @@ int SetXdnsConfig()
 
         }
 
-        if(fp3) fclose(fp3); fp3 = NULL;
-        if(fp2) fclose(fp2); fp2 = NULL;
-        if(fp1) fclose(fp1); fp1 = NULL;
+        if(fp3){ fclose(fp3);} fp3 = NULL;
+        if(fp2){ fclose(fp2);} fp2 = NULL;
+        if(fp1){ fclose(fp1);} fp1 = NULL;
 
         /*change in resolv.conf. so, restarting dnsmasq*/
         commonSyseventSet("dhcp_server-stop", "");

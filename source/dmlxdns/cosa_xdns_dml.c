@@ -25,6 +25,7 @@
 #include "ccsp_xdnsLog_wrapper.h"
 #include  "safec_lib_common.h"
 #include "cosa_xdns_webconfig_api.h"
+#include "base64.h"
 
 int isValidIPv4Address(char *ipAddress)
 {
@@ -103,7 +104,7 @@ BOOL isValidMacAddress
 /***********************************************************************
 
 
-/***********************************************************************
+************************************************************************
 
  APIs for Object:
 
@@ -122,7 +123,7 @@ XDNSDeviceInfo_GetParamBoolValue
         BOOL*                       pBool
     )
 {
-
+    UNREFERENCED_PARAMETER(hInsContext);
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
 
@@ -165,11 +166,10 @@ XDNSDeviceInfo_SetParamBoolValue
         BOOL                        bValue
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
-    errno_t                         rc1                  = -1;
-    int                             ind1                 = -1;
 
 
 CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
@@ -427,6 +427,7 @@ XDNS_GetParamStringValue
         ULONG*                      pUlSize
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
@@ -435,7 +436,7 @@ XDNS_GetParamStringValue
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
-        int bufsize = strlen(pMyObject->DefaultDeviceDnsIPv4);
+        ULONG bufsize = strlen(pMyObject->DefaultDeviceDnsIPv4);
         if (bufsize < *pUlSize)
         {
             rc = strcpy_s(pValue, *pUlSize, pMyObject->DefaultDeviceDnsIPv4);
@@ -457,7 +458,7 @@ XDNS_GetParamStringValue
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
-        int bufsize = strlen(pMyObject->DefaultDeviceDnsIPv6);
+        ULONG bufsize = strlen(pMyObject->DefaultDeviceDnsIPv6);
         if (bufsize < *pUlSize)
         {
             rc = strcpy_s(pValue, *pUlSize, pMyObject->DefaultDeviceDnsIPv6);
@@ -479,7 +480,7 @@ XDNS_GetParamStringValue
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
-        int bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4);
+        ULONG bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4);
         if (bufsize < *pUlSize)
         {
             rc = strcpy_s(pValue, *pUlSize, pMyObject->DefaultSecondaryDeviceDnsIPv4);
@@ -501,7 +502,7 @@ XDNS_GetParamStringValue
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
-        int bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6);
+        ULONG bufsize = strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6);
         if (bufsize < *pUlSize)
         {
             rc = strcpy_s(pValue, *pUlSize, pMyObject->DefaultSecondaryDeviceDnsIPv6);
@@ -523,7 +524,7 @@ XDNS_GetParamStringValue
     ERR_CHK(rc);
     if((!ind) && (rc == EOK))
     {
-        int bufsize = strlen(pMyObject->DefaultDeviceTag);
+        ULONG bufsize = strlen(pMyObject->DefaultDeviceTag);
         if (bufsize < *pUlSize)
         {
             rc = strcpy_s(pValue, *pUlSize, pMyObject->DefaultDeviceTag);
@@ -562,6 +563,7 @@ XDNS_GetParamBoolValue
         BOOL*                       pBool
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
 
@@ -603,7 +605,8 @@ XDNS_SetParamBoolValue
         BOOL                        bValue
     )
 {
-
+    UNREFERENCED_PARAMETER(hInsContext);
+    UNREFERENCED_PARAMETER(bValue);
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
 CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
@@ -691,6 +694,7 @@ XDNS_SetParamStringValue
         char*                       pString
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
@@ -792,8 +796,8 @@ XDNS_SetParamStringValue
 
                 decodeMsg = (char *) malloc(sizeof(char) * decodeMsgSize);
 
-                size = b64_decode( pString, strlen(pString), decodeMsg );
-                fprintf(stderr, "%s base64 decoded data contains %d bytes\n",__FUNCTION__);
+                size = b64_decode((const uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
+                fprintf(stderr, "%s base64 decoded data contains %d bytes\n",__FUNCTION__,size);
 
 
                 msgpack_zone_init(&mempool, 2048);
@@ -934,6 +938,7 @@ XDNS_Validate
         ULONG*                      puLength
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     int ret = TRUE;
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     errno_t                         rc                  = -1;
@@ -1038,12 +1043,12 @@ XDNS_Commit
         ANSC_HANDLE                 hInsContext
     )
 {
-    char dnsoverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
+    UNREFERENCED_PARAMETER(hInsContext);
+    char dnsoverrideEntry[MAX_XDNS_SERV][MAX_BUF_SIZE] = {{0,0}};
     char* defaultMacAddress = "00:00:00:00:00:00";
     int count=0;
     char iprulebuf[256] = {0};
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
-    errno_t                         rc                  = -1;
     
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
@@ -1132,13 +1137,14 @@ XDNS_Rollback
         ANSC_HANDLE                 hInsContext
     )
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     char* primarytoken = NULL;
     char* secondarytoken = NULL;
     const char* s = " ";
-    char buf[MAX_XDNS_SERV][MAX_BUF_SIZE] = {0,0};
+    char buf[MAX_XDNS_SERV][MAX_BUF_SIZE] = {{0,0}};
     char* defaultMacAddress = "00:00:00:00:00:00";
     errno_t                         rc       = -1;
 
@@ -1284,7 +1290,7 @@ DNSMappingTable_GetEntryCount
     )
 
 {
-
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     int Qdepth = AnscSListQueryDepth( &pMyObject->XDNSDeviceList );
     return Qdepth;
@@ -1298,7 +1304,7 @@ DNSMappingTable_GetEntry
         ULONG*                      pInsNumber
     )
 {
-
+    UNREFERENCED_PARAMETER(hInsContext);
     PCOSA_DATAMODEL_XDNS                   pMyObject         = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     PSINGLE_LINK_ENTRY                    pSListEntry       = NULL;
     PCOSA_CONTEXT_XDNS_LINK_OBJECT    pCxtLink          = NULL;
@@ -1319,7 +1325,7 @@ DNSMappingTable_IsUpdated
         ANSC_HANDLE                 hInsContext
     )
 {
-    PCOSA_DATAMODEL_XDNS             SELFHEAL    = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    UNREFERENCED_PARAMETER(hInsContext);
     BOOL                            bIsUpdated   = TRUE;
     return bIsUpdated;
 }
@@ -1330,13 +1336,7 @@ DNSMappingTable_Synchronize
         ANSC_HANDLE                 hInsContext
     )
 {
-
-    ANSC_STATUS                           returnStatus      = ANSC_STATUS_FAILURE;
-    PCOSA_DATAMODEL_XDNS             SELFHEAL    = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
-    PCOSA_CONTEXT_XDNS_LINK_OBJECT    pCxtLink          = NULL;
-    PSINGLE_LINK_ENTRY                    pSListEntry       = NULL;
-    PSINGLE_LINK_ENTRY                    pSListEntry2      = NULL;
-    ULONG                                 entryCount        = 0;
+    UNREFERENCED_PARAMETER(hInsContext);
     /*Coverity Fix CID:72723  MISSING_RETURN */
     return ANSC_STATUS_SUCCESS;
 }
@@ -1348,7 +1348,7 @@ DNSMappingTable_AddEntry
         ULONG*                      pInsNumber
     )
 {
-
+    UNREFERENCED_PARAMETER(hInsContext);
 	PCOSA_DATAMODEL_XDNS             pXdns              = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry = NULL;
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink  = NULL;
@@ -1396,6 +1396,7 @@ DNSMappingTable_DelEntry
     )
 
 {
+    UNREFERENCED_PARAMETER(hInsContext);
     ANSC_STATUS                          returnStatus      = ANSC_STATUS_SUCCESS;
     PCOSA_DATAMODEL_XDNS             pXdns               = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink   = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInstance;
@@ -1438,7 +1439,6 @@ DNSMappingTable_GetParamStringValue
 {
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
-    PUCHAR                                    pString       = NULL;
     errno_t                                   rc            = -1;
     int                                       ind           = -1;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
@@ -1555,7 +1555,7 @@ DNSMappingTable_SetParamStringValue
     	// if MacAddress is already present, don't update.
         if(!strlen(pDnsTableEntry->MacAddress))
         {
-        	UCHAR *p = NULL;
+        	CHAR *p = NULL;
             rc = strcpy_s(pDnsTableEntry->MacAddress, sizeof(pDnsTableEntry->MacAddress), strValue);
             if (rc != EOK)
             {
@@ -1733,7 +1733,7 @@ DNSMappingTable_Commit
     )
 
 {
-    char dnsoverrideEntry[1][256] = {0,0};
+    char dnsoverrideEntry[1][256] = {{0,0}};
 
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
@@ -1788,9 +1788,10 @@ DNSMappingTable_Rollback
 
     if(!strlen(buf))
     {
+        char *pBuf = buf;
         if(pDnsTableEntry->DnsIPv4Changed)
         {
-	    rc = strcpy_s(pDnsTableEntry->DnsIPv4,sizeof(pDnsTableEntry->DnsIPv4) ,buf);
+	    rc = strcpy_s(pDnsTableEntry->DnsIPv4,sizeof(pDnsTableEntry->DnsIPv4) ,pBuf);
             if(rc != EOK)
             {
             ERR_CHK(rc);
@@ -1799,7 +1800,7 @@ DNSMappingTable_Rollback
         }
         if(pDnsTableEntry->DnsIPv6Changed)
         {
-	    rc = strcpy_s(pDnsTableEntry->DnsIPv6,sizeof(pDnsTableEntry->DnsIPv6) ,buf);
+	    rc = strcpy_s(pDnsTableEntry->DnsIPv6,sizeof(pDnsTableEntry->DnsIPv6) ,pBuf);
             if(rc != EOK)
             {
             ERR_CHK(rc);
@@ -1808,7 +1809,7 @@ DNSMappingTable_Rollback
         }
         if(pDnsTableEntry->TagChanged)
         {
-	    rc = strcpy_s(pDnsTableEntry->Tag,sizeof(pDnsTableEntry->Tag) ,buf);
+	    rc = strcpy_s(pDnsTableEntry->Tag,sizeof(pDnsTableEntry->Tag) ,pBuf);
             if(rc != EOK)
             {
             ERR_CHK(rc);
