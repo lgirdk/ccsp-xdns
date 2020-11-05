@@ -46,6 +46,38 @@
                 <writable>true</writable>
             </parameter>
       </parameters>
+      <objects>
+        <object>
+        <name>X_RDKCENTRAL-COM_RFC</name>
+        <objectType>object</objectType>
+        <functions></functions>
+        <parameters></parameters>
+        <objects>
+            <object>
+                <name>Feature</name>
+                <objectType>object</objectType> 
+                <objects>
+                   <object>
+                       <name>AvoidUnNecesaryXDNSretries</name>
+                       <objectType>object</objectType>
+                       <functions>
+          		       <func_GetParamBoolValue>XDNSRefac_GetParamBoolValue</func_GetParamBoolValue>
+	         	       <func_SetParamBoolValue>XDNSRefac_SetParamBoolValue</func_SetParamBoolValue>
+                       </functions>
+                       <parameters>
+		          <parameter>
+          		       <name>Enable</name>
+	         	       <type>boolean</type>
+			       <syntax>bool</syntax>
+			       <writable>true</writable>
+                          </parameter>
+                       </parameters>
+                  </object>
+                </objects>
+            </object>
+        </objects>
+       </object>
+      </objects>
     </object>
     <object>
         <name>X_RDKCENTRAL-COM_XDNS</name>

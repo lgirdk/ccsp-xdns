@@ -267,12 +267,141 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
 }
 
-
-
 /***********************************************************************
 
+APIs for Object:
 
-/***********************************************************************
+    DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AvoidUnNecesaryXDNSretries.
+
+    *  XDNSRefac_GetParamBoolValue
+    *  XDNSRefac_SetParamBoolValue
+
+***********************************************************************/
+
+BOOL
+XDNSRefac_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+
+    UNREFERENCED_PARAMETER(hInsContext);
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+
+
+   CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    // XDNS - get AvoidUnNecesaryXDNSretries Enable/Disable flag
+
+        rc = strcmp_s("Enable", strlen("Enable"), ParamName , &ind);
+        ERR_CHK(rc);
+        if((!ind) && (rc == EOK))
+        {
+                char buf[5] = {0};
+                syscfg_get( NULL, "XDNS_RefacCodeEnable", buf, sizeof(buf));
+                if( buf != NULL )
+                {
+                        int var=atoi(buf);
+                        if(var)
+                        {
+
+                                *pBool = TRUE;
+                                return TRUE;
+                        }
+                }
+
+                *pBool = FALSE;
+
+                return TRUE;
+        }
+
+
+    CcspXdnsConsoleTrace(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+BOOL
+XDNSRefac_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    errno_t                         rc                  = -1;
+    int                             ind                 = -1;
+
+
+   CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
+
+    // XDNS - set AvoidUnNecesaryXDNSretries Enable/Disable flag
+
+
+    rc = strcmp_s("Enable", strlen("Enable"), ParamName , &ind);
+    ERR_CHK(rc);
+    if((!ind) && (rc == EOK))
+    {
+       // Check if XDNS is Enable if not AvoidUnNecesaryXDNSretries.Enable should not be Enabled/Disabled. so, dml will return error.
+                char buf[5] = {0};
+                syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
+                if( buf != NULL )
+                {
+                        int var=atoi(buf);
+
+                        if(!var)
+                        {
+                                CcspTraceError((" %s X_RDKCENTRAL-COM_XDNS value is disabled,so, AvoidUnNecesaryXDNSretries_RFC Enable/Disable NOT SUCCESSFULL!!!\n", __FUNCTION__));
+                                return FALSE;
+                        }
+                }
+
+                char bval[2] = {0};
+                if( bValue == TRUE)
+                {
+                        bval[0] = '1';
+                }
+                else
+                {
+                        bval[0] = '0';
+                }
+
+
+
+                if (syscfg_set(NULL, "XDNS_RefacCodeEnable", bval) != 0)
+                {
+
+                        CcspTraceInfo(("%s syscfg_set XDNS_RefacCodeEnable failed!!!!!\n", __FUNCTION__ ));
+                }
+                else
+                {
+                        if (syscfg_commit() != 0)
+                        {
+                                CcspTraceInfo(("%s syscfg_commit XDNS_RefacCodeEnable failed!!!!\n", __FUNCTION__ ));
+                        }
+                        else
+                        {
+                                CcspTraceInfo(("%s syscfg_set XDNS_RefacCodeEnable value set to %s \n", __FUNCTION__,bval ));
+				if(bValue){
+					CcspTraceInfo(("%s AvoidUnNecesaryXDNSretries_RFC_changed_to_enabled \n", __FUNCTION__));
+				}else{
+					CcspTraceInfo(("%s AvoidUnNecesaryXDNSretries_RFC_changed_to_disabled \n", __FUNCTION__));
+				}
+                                commonSyseventSet("dhcp_server-stop", "");
+                                commonSyseventSet("dhcp_server-start", "");
+                        }
+                }
+
+                return TRUE;
+        }
+
+    CcspXdnsConsoleTrace(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/************************************************************************
 
  APIs for Object:
 
