@@ -61,8 +61,8 @@ typedef struct {
 } xdns_cache;
 
 
-xdns_cache XDNS_Data_Cache;
-xdns_cache XDNS_tmp_bck;
+extern xdns_cache XDNS_Data_Cache;
+extern xdns_cache XDNS_tmp_bck;
 
 
 
