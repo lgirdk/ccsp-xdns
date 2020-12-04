@@ -24,6 +24,9 @@
 #include "webconfig_framework.h"
 #include  "safec_lib_common.h"
 
+xdns_cache XDNS_Data_Cache;
+xdns_cache XDNS_tmp_bck;
+
 int CheckIfIpIsValid( char *ipAddress )
 {
 
