@@ -590,17 +590,22 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
   
         //intilalization of Default XDNS parametrs to NULL
 	//store values read from resolv.conf to TR181 object, could be empty
+   if(!(isValidIPv4Address(pMyObject->DefaultDeviceDnsIPv4))){
     rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv4, sizeof(pMyObject->DefaultDeviceDnsIPv4),tokenIPv4);
     if(rc != EOK)
     {
         ERR_CHK(rc);
         return;
     }
+    }
+    
+    if(!(isValidIPv6Address(pMyObject->DefaultDeviceDnsIPv6))){
     rc = strcpy_s(pMyObject->DefaultDeviceDnsIPv6,sizeof(pMyObject->DefaultDeviceDnsIPv6) ,tokenIPv6);
     if(rc != EOK)
     {
         ERR_CHK(rc);
         return;
+    }
     }
 
     rc = strcpy_s(pMyObject->DefaultSecondaryDeviceDnsIPv4, sizeof(pMyObject->DefaultSecondaryDeviceDnsIPv4),"");
@@ -615,25 +620,27 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
         ERR_CHK(rc);
         return;
     }
+    
+    if(!(strlen(pMyObject->DefaultDeviceTag))){
     rc = strcpy_s(pMyObject->DefaultDeviceTag,sizeof(pMyObject->DefaultDeviceTag) ,"empty");
     if(rc != EOK)
     {
         ERR_CHK(rc);
         return;
     }
-
+    }
 #ifndef FEATURE_IPV6
 	/* IPv4 ONLY MODE : Create xDNS default dnsoverride entry */
 	if(foundIPv4)
 	{
-	snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", tokenIPv4, pMyObject->DefaultDeviceTag);
+	snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
 	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry,1); //only primary XDNS has default. secondary is NULL so giving 1 for append
 	}
 #else
 	/* Create xDNS default dnsoverride entry by reading both IPv4 and IPv6 */
 	if(foundIPv4 && foundIPv6)
         {
-    		snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, tokenIPv6, pMyObject->DefaultDeviceTag);
+    		snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
 	//else if(foundIPv4)	// !foundIPv6
 	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, "::", pMyObject->DefaultDeviceTag);
 	//else if(foundIPv6)	// !foundIPv4

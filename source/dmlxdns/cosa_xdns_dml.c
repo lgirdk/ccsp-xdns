@@ -165,6 +165,7 @@ XDNSDeviceInfo_SetParamBoolValue
         BOOL                        bValue
     )
 {
+    PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
     errno_t                         rc                  = -1;
     int                             ind                 = -1;
     errno_t                         rc1                  = -1;
@@ -201,6 +202,15 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
         if( bValue == TRUE)
         {
+                
+                FILE *fp1 = NULL;
+                fp1 = fopen(DNSMASQ_SERVERS_CONF ,"r");
+                if(fp1 == NULL)
+                {
+                        fprintf(stderr, "%s while Enabling XDNS DNSMASQ_SERVERS_CONF not exists\n",__FUNCTION__);
+                        CreateDnsmasqServerConf(pMyObject);
+                }
+
                 if(!SetXdnsConfig())
                         return FALSE;
 
