@@ -634,14 +634,14 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
     }
 #ifndef FEATURE_IPV6
 	/* IPv4 ONLY MODE : Create xDNS default dnsoverride entry */
-	if(foundIPv4)
+	if(strlen(pMyObject->DefaultDeviceDnsIPv4))
 	{
 	snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
 	AppendDnsmasqConfEntry(dnsmasqConfOverrideEntry,1); //only primary XDNS has default. secondary is NULL so giving 1 for append
 	}
 #else
 	/* Create xDNS default dnsoverride entry by reading both IPv4 and IPv6 */
-	if(foundIPv4 && foundIPv6)
+	if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
         {
     		snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
 	//else if(foundIPv4)	// !foundIPv6
