@@ -36,7 +36,7 @@
 #define STR_SIZE 64
 #define IPV6_STR_SIZE 129
 #define DATA_BLOCK_SIZE 256
-#define XDNS_CACHE_SIZE 64
+#define XDNS_CACHE_SIZE 256
 
 
 typedef struct {
