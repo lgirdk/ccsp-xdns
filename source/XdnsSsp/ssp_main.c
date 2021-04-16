@@ -421,13 +421,14 @@ int main(int argc, char* argv[])
 //    if (write_pid_file("/var/tmp/CcspTandDSsp.pid") != 0)
 //        fprintf(stderr, "%s: fail to write PID file\n", argv[0]);
 
+    cmd_dispatch('e');
+
     check_component_crash(XDNS_BOOTUP_INIT_FILE);
+    CcspTraceInfo(("XDNS:------------------touch /tmp/Xdns_bootup_initialized----------------\n"));
     fprintf(stderr,"XDNS:------------------touch /tmp/Xdns_bootup_initialized----------------\n");
     char init_file[128] = {0};
     snprintf(init_file,sizeof(init_file),"touch %s",XDNS_BOOTUP_INIT_FILE);
     system(init_file);
-
-    cmd_dispatch('e');
 
     if ( bRunAsDaemon )
     {
