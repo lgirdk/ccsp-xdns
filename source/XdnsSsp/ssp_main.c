@@ -46,6 +46,7 @@
 #include "stdlib.h"
 #include "safec_lib_common.h"
 #include "webconfig_framework.h"
+#include "secure_wrapper.h"
 
 #define XDNS_BOOTUP_INIT_FILE "/tmp/xdns_bootup_initialized"
 
@@ -426,9 +427,8 @@ int main(int argc, char* argv[])
     check_component_crash(XDNS_BOOTUP_INIT_FILE);
     CcspTraceInfo(("XDNS:------------------touch /tmp/Xdns_bootup_initialized----------------\n"));
     fprintf(stderr,"XDNS:------------------touch /tmp/Xdns_bootup_initialized----------------\n");
-    char init_file[128] = {0};
-    snprintf(init_file,sizeof(init_file),"touch %s",XDNS_BOOTUP_INIT_FILE);
-    system(init_file);
+
+    v_secure_system("touch " XDNS_BOOTUP_INIT_FILE);
 
     if ( bRunAsDaemon )
     {
