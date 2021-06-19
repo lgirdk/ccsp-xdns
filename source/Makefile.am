@@ -17,3 +17,7 @@
 # limitations under the License.
 ##########################################################################
 SUBDIRS = XdnsSsp dmlxdns
+
+if WITH_GTEST_SUPPORT
+SUBDIRS += test
+endif
