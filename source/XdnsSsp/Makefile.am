@@ -18,16 +18,12 @@
 ##########################################################################
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
-AM_LDFLAGS = -lccsp_common -ldl -lwebconfig_framework -lsecure_wrapper
-
-if CCSP_ARCH_ARM
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-endif
 
-AM_CPPFLAGS = -Wall -Werror
 ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
+
 bin_PROGRAMS = CcspXdnsSsp
-CcspXdnsSsp_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/dmlxdns -I$(top_srcdir)/source/XdnsSsp $(CPPFLAGS)
+
+CcspXdnsSsp_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/dmlxdns -I$(top_srcdir)/source/XdnsSsp
 CcspXdnsSsp_SOURCES = ssp_messagebus_interface.c ssp_main.c ssp_action.c ssp_messagebus_interface_priv.c dm_pack_datamodel.c
 CcspXdnsSsp_LDFLAGS = -lccsp_common -ldl -lsyscfg -rdynamic -lwebconfig_framework -lsecure_wrapper
