@@ -84,7 +84,7 @@ int CheckIfMacIsValid(char* pAddress)
         }
         else
         {
-            if ( AnscIsAlphaOrDigit(c) )
+            if ( AnscIsHexAlphaOrDigit(c) )
             {
                 continue;
             }

@@ -89,7 +89,7 @@ BOOL isValidMacAddress
         }
         else
         {
-            if ( AnscIsAlphaOrDigit(c) )
+            if ( AnscIsHexAlphaOrDigit(c) )
             {
                 continue;
             }
