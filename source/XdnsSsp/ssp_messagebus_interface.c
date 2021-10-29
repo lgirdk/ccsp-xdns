@@ -117,7 +117,7 @@ ssp_XdnsMbi_MessageBusEngage
         return returnStatus;
     }
     ssp_XdnsMbi_WaitConditionReady(bus_handle, CCSP_DBUS_PSM, CCSP_DBUS_PATH_PSM, component_id);
-    CcspTraceInfo(("!!! Connected to message bus... bus_handle: 0x%08X !!!\n", bus_handle));
+    CcspTraceInfo(("!!! Connected to message bus... bus_handle: 0x%8p !!!\n", bus_handle));
     g_MessageBusHandle_Irep = bus_handle;
     char *pSubsystem = g_Subsystem;
     rc = strcpy_s( g_SubSysPrefix_Irep, sizeof( g_SubSysPrefix_Irep),pSubsystem);
@@ -164,7 +164,7 @@ ssp_XdnsMbi_MessageBusEngage
 
     if ( returnStatus != CCSP_Message_Bus_OK )
     {
-        CcspTraceError((" !!! CCSP_Message_Bus_Register_Path ERROR returnStatus: %d\n!!!\n", returnStatus));
+        CcspTraceError((" !!! CCSP_Message_Bus_Register_Path ERROR returnStatus: %lu\n!!!\n", returnStatus));
 
         return returnStatus;
     }
@@ -181,7 +181,7 @@ ssp_XdnsMbi_MessageBusEngage
 
     if ( returnStatus != CCSP_Message_Bus_OK )
     {
-        CcspTraceError((" !!! CCSP_Message_Bus_Register_Event: CurrentSessionIDSignal ERROR returnStatus: %d!!!\n", returnStatus));
+        CcspTraceError((" !!! CCSP_Message_Bus_Register_Event: CurrentSessionIDSignal ERROR returnStatus: %lu!!!\n", returnStatus));
 
         return returnStatus;
     }
