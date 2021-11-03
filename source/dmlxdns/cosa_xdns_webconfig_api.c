@@ -408,6 +408,7 @@ int apply_XDNS_cache_ToDB(xdns_cache *tmp_xdns_cache)
 	char buf[DATA_BLOCK_SIZE]={0};
 	FILE *fp1 =NULL;
 	int i;
+	errno_t rc = -1;
 
 	fprintf(stderr, "%s Entered !!!\n",__FUNCTION__);
 
@@ -418,14 +419,20 @@ int apply_XDNS_cache_ToDB(xdns_cache *tmp_xdns_cache)
 		return FILE_OPEN_ERROR;
 	}
 
-        snprintf(Entry, DATA_BLOCK_SIZE, "dnsoverride %s %s %s %s\n", def_mac, tmp_xdns_cache->DefaultDeviceDnsIPv4, tmp_xdns_cache->DefaultDeviceDnsIPv6 , tmp_xdns_cache->DefaultDeviceTag);
+        rc = sprintf_s(Entry, sizeof(Entry), "dnsoverride %s %s %s %s\n", def_mac, tmp_xdns_cache->DefaultDeviceDnsIPv4, tmp_xdns_cache->DefaultDeviceDnsIPv6 , tmp_xdns_cache->DefaultDeviceTag);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+	}
 	fprintf(fp1, "%s", Entry);
 
         for(i=0;i<(tmp_xdns_cache->Tablecount);i++)
         {
-		memset(Entry,0,DATA_BLOCK_SIZE);
+		memset(Entry,0, sizeof(Entry));
 
-        	snprintf(Entry, DATA_BLOCK_SIZE, "dnsoverride %s %s %s %s\n", tmp_xdns_cache->XDNSTableList[i].MacAddress, tmp_xdns_cache->XDNSTableList[i].DnsIPv4 , tmp_xdns_cache->XDNSTableList[i].DnsIPv6, tmp_xdns_cache->XDNSTableList[i].Tag);
+        	rc = sprintf_s(Entry, sizeof(Entry), "dnsoverride %s %s %s %s\n", tmp_xdns_cache->XDNSTableList[i].MacAddress, tmp_xdns_cache->XDNSTableList[i].DnsIPv4 , tmp_xdns_cache->XDNSTableList[i].DnsIPv6, tmp_xdns_cache->XDNSTableList[i].Tag);
+		if(rc < EOK) {
+		     ERR_CHK(rc);
+		}
 	fprintf(fp1, "%s", Entry);
         }
 

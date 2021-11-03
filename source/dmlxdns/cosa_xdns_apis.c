@@ -643,7 +643,10 @@ void CreateDnsmasqServerConf(PCOSA_DATAMODEL_XDNS pMyObject)
 	/* Create xDNS default dnsoverride entry by reading both IPv4 and IPv6 */
 	if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
         {
-    		snprintf(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+            rc = sprintf_s(dnsmasqConfOverrideEntry[0], 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+	    if(rc < EOK) {
+		ERR_CHK(rc);
+            }
 	//else if(foundIPv4)	// !foundIPv6
 	//	snprintf(dnsmasqConfOverrideEntry, 256, "dnsoverride 00:00:00:00:00:00 %s %s %s\n", tokenIPv4, "::", pMyObject->DefaultDeviceTag);
 	//else if(foundIPv6)	// !foundIPv4
@@ -883,14 +886,20 @@ CosaDmlGetSelfHealCfg(
             else
             {
                     char iprulebuf[256] = {0};
-                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+                    rc = sprintf_s(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+		    if(rc < EOK) {
+			ERR_CHK(rc);
+		    }
 
                     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
                         vsystem("ip -4 rule add %s", iprulebuf);
 
     #ifdef FEATURE_IPV6
 
-                    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+                    rc = sprintf_s(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+		    if(rc < EOK) {
+			 ERR_CHK(rc);
+		    }
 
                     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
                         vsystem("ip -6 rule add %s", iprulebuf);

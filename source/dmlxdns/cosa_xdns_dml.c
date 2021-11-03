@@ -1049,6 +1049,7 @@ XDNS_Commit
     int count=0;
     char iprulebuf[256] = {0};
     PCOSA_DATAMODEL_XDNS            pMyObject           = (PCOSA_DATAMODEL_XDNS)g_pCosaBEManager->hXdns;
+    errno_t rc = -1;
     
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
@@ -1057,7 +1058,10 @@ XDNS_Commit
 #ifndef FEATURE_IPV6
     if(strlen(pMyObject->DefaultDeviceDnsIPv4))
     {  
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+	if(rc < EOK) {
+	   ERR_CHK(rc);
+	} 
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -4 rule add %s", iprulebuf);
@@ -1068,7 +1072,10 @@ XDNS_Commit
 
     if(strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4))
     {
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+	if(rc < EOK) {
+	     ERR_CHK(rc);
+	}
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -4 rule add %s", iprulebuf);
@@ -1082,32 +1089,50 @@ XDNS_Commit
     if(strlen(pMyObject->DefaultDeviceDnsIPv4) && strlen(pMyObject->DefaultDeviceDnsIPv6))
     {
 
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv4);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+	}
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -4 rule add %s", iprulebuf);
 
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv6);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv6);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+	}
 
         if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -6 rule add %s", iprulebuf);
 
-        snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+        rc = sprintf_s(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+	if(rc < EOK) {
+	     ERR_CHK(rc);
+        }
 	count++; 
     if(strlen(pMyObject->DefaultSecondaryDeviceDnsIPv4) && strlen(pMyObject->DefaultSecondaryDeviceDnsIPv6))
     {
 
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv4);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+	}
 
         if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -4 rule add %s", iprulebuf);
 
-        snprintf(iprulebuf, 256, "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv6);
+        rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv6);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+	}
 
         if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
             vsystem("ip -6 rule add %s", iprulebuf);
 
-        snprintf(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultSecondaryDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+        rc = sprintf_s(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultSecondaryDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
+	if(rc < EOK) {
+	    ERR_CHK(rc);
+        }
 	count++; 
     }
 
@@ -1734,24 +1759,34 @@ DNSMappingTable_Commit
 
 {
     char dnsoverrideEntry[1][256] = {{0,0}};
+    errno_t rc = -1;
 
     PCOSA_CONTEXT_XDNS_LINK_OBJECT   pXdnsCxtLink     = (PCOSA_CONTEXT_XDNS_LINK_OBJECT)hInsContext;
     PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY pDnsTableEntry  = (PCOSA_DML_XDNS_MACDNS_MAPPING_ENTRY)pXdnsCxtLink->hContext;
     CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
 
     char iprulebuf[256] = {0};
-    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+    rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pDnsTableEntry->DnsIPv4);
+    if(rc < EOK) {
+        ERR_CHK(rc);
+    }
 
     if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
         vsystem("ip -4 rule add %s", iprulebuf);
 
 #ifdef FEATURE_IPV6
-    snprintf(iprulebuf, 256, "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+    rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
+    if(rc < EOK) {
+	ERR_CHK(rc);
+    }
 
     if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
         vsystem("ip -6 rule add %s", iprulebuf);
 
-    snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
+    rc = sprintf_s(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
+    if(rc < EOK) {
+        ERR_CHK(rc);
+    }
 #else
     snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->Tag);
 #endif

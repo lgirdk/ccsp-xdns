@@ -362,7 +362,10 @@ CosaUtilGetLowerLayers
                            {
                                _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.Ethernet.Interface.", ulEntryInstanceNum);
 
-                               _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, ".Name");
+                               rc = sprintf_s(ucEntryParamName, sizeof(ucEntryParamName),"%s%s", ucEntryFullPath, ".Name");
+			       if(rc < EOK) {
+				    ERR_CHK(rc);
+				}
 
                               if ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen))
                               {
@@ -389,7 +392,10 @@ CosaUtilGetLowerLayers
                      {
                         _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.IP.Interface.", ulEntryInstanceNum);
 
-                        _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, ".Name");
+                        rc = sprintf_s(ucEntryParamName, sizeof(ucEntryParamName),"%s%s", ucEntryFullPath, ".Name");
+			if(rc < EOK) {
+			    ERR_CHK(rc);
+			}
 
 
 			if  ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen)) 
@@ -428,7 +434,10 @@ CosaUtilGetLowerLayers
                     {
                         _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.WiFi.Radio.", ulEntryInstanceNum);
  
-                        _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, ".Name");
+                        rc = sprintf_s(ucEntryParamName, sizeof(ucEntryParamName),"%s%s", ucEntryFullPath, ".Name");
+			if(rc < EOK) {
+			    ERR_CHK(rc);
+			}
  
 			if ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen) )
                         {
@@ -471,7 +480,10 @@ CosaUtilGetLowerLayers
                     {
                         _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.Ethernet.Link.", ulEntryInstanceNum);
 
-                        _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, ".Name");
+                        rc = sprintf_s(ucEntryParamName, sizeof(ucEntryParamName),"%s%s", ucEntryFullPath, ".Name");
+			if(rc < EOK) {
+			    ERR_CHK(rc);
+			}
  
 			if ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen) )
                         {
@@ -505,14 +517,24 @@ CosaUtilGetLowerLayers
                     if ( ulEntryInstanceNum )
                     {
                         _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.Bridging.Bridge.", ulEntryInstanceNum);
-                        _ansc_sprintf(ucLowerEntryPath, "%s%s", ucEntryFullPath, ".PortNumberOfEntries"); 
+                        rc = sprintf_s(ucLowerEntryPath, sizeof(ucLowerEntryPath),"%s%s", ucEntryFullPath, ".PortNumberOfEntries");
+			if(rc < EOK) {
+			     ERR_CHK(rc);
+			}
  
                         ulEntryPortNum = CosaGetParamValueUlong(ucLowerEntryPath);
                         AnscTraceFlow(("----------CosaUtilGetLowerLayers, Param:%s,port num:%lu\n",ucLowerEntryPath, ulEntryPortNum));
 
                         for ( j = 1; j<= ulEntryPortNum; j++) {
-                            _ansc_sprintf(ucLowerEntryName, "%s%s%lu", ucEntryFullPath, ".Port.", j);
-                            _ansc_sprintf(ucEntryParamName, "%s%s%lu%s", ucEntryFullPath, ".Port.", j, ".Name");
+                            rc = sprintf_s(ucLowerEntryName, sizeof(ucEntryFullPath),"%s%s%lu", ucEntryFullPath, ".Port.", j);
+			    if(rc < EOK) {
+				ERR_CHK(rc);
+			    }
+                            rc = sprintf_s(ucEntryParamName, sizeof(ucEntryFullPath),"%s%s%lu%s", ucEntryFullPath, ".Port.", j, ".Name");
+			    if(rc < EOK)
+			    {
+				ERR_CHK(rc);
+			    }
                             AnscTraceFlow(("----------CosaUtilGetLowerLayers, Param:%s,Param2:%s\n", ucLowerEntryName, ucEntryParamName));
  
 			    if ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen) )
@@ -640,7 +662,10 @@ CosaUtilGetFullPathNameByKeyword
 
             pString--;
             pString[0] = '\0';
-            _ansc_sprintf(ucTmp2, "%s%s", pString2, "NumberOfEntries");                
+            rc = sprintf_s(ucTmp2, sizeof(ucTmp2),"%s%s", pString2, "NumberOfEntries");
+	    if(rc < EOK) {
+		ERR_CHK(rc);
+	    }
             pString[0] = '.';
 
             /* Enumerate the entry in this table */
@@ -648,7 +673,10 @@ CosaUtilGetFullPathNameByKeyword
             {
                 pString2--;
                 pString2[0]='\0';
-                _ansc_sprintf(ucTmp, "%s.%s", pTableStringToken->Name, ucTmp2);
+                rc = sprintf_s(ucTmp, sizeof(ucTmp),"%s.%s", pTableStringToken->Name, ucTmp2);
+		if(rc < EOK) {
+		    ERR_CHK(rc);
+		}
                 pString2[0]='.';
                 ulNumOfEntries =       CosaGetParamValueUlong(ucTmp);
 
@@ -658,7 +686,10 @@ CosaUtilGetFullPathNameByKeyword
 
                     if ( ulEntryInstanceNum )
                     {
-                        _ansc_sprintf(ucEntryFullPath, "%s%lu%s", pTableStringToken->Name, ulEntryInstanceNum, ".");
+                        rc = sprintf_s(ucEntryFullPath, sizeof(ucEntryFullPath),"%s%lu%s", pTableStringToken->Name, ulEntryInstanceNum, ".");
+			if(rc < EOK) {
+			    ERR_CHK(rc);
+			}
 
                         _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, pParameterName);
 
