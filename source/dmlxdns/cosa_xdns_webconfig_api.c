@@ -690,7 +690,7 @@ pErr Process_XDNS_WebConfigRequest(void *Data)
 	fprintf(stderr, "xd->default_ipv4 %s\n", xd->default_ipv4);
 	fprintf(stderr, "xd->default_ipv6 %s\n", xd->default_ipv6);
 	fprintf(stderr, "xd->default_tag %s\n", xd->default_tag);
-	fprintf(stderr, "xd->table_param->entries_count %d\n", xd->table_param->entries_count);
+	fprintf(stderr, "xd->table_param->entries_count %zu\n", xd->table_param->entries_count);
         int i;
         for(i = 0; i < (int)xd->table_param->entries_count ; i++)
         {
