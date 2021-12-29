@@ -390,7 +390,7 @@ void* MonitorResolvConfForChanges(void *arg)
      numRead = read(inotifyFd, buf, BUF_LEN);
      if (numRead == 0)
         {
-            CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : read() from inotify fd returned  numRead %d  \n", __FUNCTION__ , numRead));
+            CcspXdnsConsoleTrace(("RDK_LOG_ERROR, CcspXDNS %s : read() from inotify fd returned  numRead %zu  \n", __FUNCTION__ , numRead));
         }
 
      if (numRead == -1)
