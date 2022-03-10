@@ -187,22 +187,31 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
         syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
         if( buf != NULL )
         {
-    	    int var=atoi(buf);
+            int var=atoi(buf);
 
             if(((bValue == TRUE) && (var)) ||
                ((bValue == FALSE) && (!var)))
             {
-	       fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is same in DB, just return\n",__FUNCTION__);
-               return TRUE;
+                fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is same in DB, just return\n",__FUNCTION__);
+                return TRUE;
             }
         }
 
-
-
-
         if( bValue == TRUE)
         {
-                
+#ifdef WAN_FAILOVER_SUPPORTED
+            token_t  token;
+            int fd = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "xdns", &token);
+            if (!fd)
+            {
+                CcspTraceError(("CcspXDNS: Failed to get sysevent fd %d\n", fd));
+                return FALSE;
+            }
+            char currentWanIfname[32] = {0};
+            if( sysevent_get(fd, token, "current_wan_ifname", currentWanIfname, sizeof(currentWanIfname)) == 0 &&
+                strncmp(currentWanIfname, "erouter0", 8) == 0 )
+            {
+#endif
                 FILE *fp1 = NULL;
                 fp1 = fopen(DNSMASQ_SERVERS_CONF ,"r");
                 if(fp1 == NULL)
@@ -212,18 +221,29 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
                 }
 
                 if(!SetXdnsConfig())
-                        return FALSE;
-
-                bval[0] = '1';
+#ifdef WAN_FAILOVER_SUPPORTED
+                {
+                    sysevent_close(fd, token);
+#endif
+                    return FALSE;
+#ifdef WAN_FAILOVER_SUPPORTED
+                }
+            }
+            else
+            {
+                CcspTraceWarning(("CcspXDNS: Not enabled due to LTE WAN\n"));
+            }
+            sysevent_close(fd, token);
+#endif
+            bval[0] = '1';
         }
         else
         {
-                        if(!UnsetXdnsConfig())
-                                return FALSE;
+            if(!UnsetXdnsConfig())
+                return FALSE;
 
-                        bval[0] = '0';
-                }
-
+            bval[0] = '0';
+        }
 
         if (syscfg_set(NULL, "X_RDKCENTRAL-COM_XDNS", bval) != 0)
         {

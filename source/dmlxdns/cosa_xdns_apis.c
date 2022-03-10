@@ -72,6 +72,10 @@
 #include "cosa_xdns_apis.h"
 #include <sys/inotify.h>
 #include <limits.h>
+#ifdef WAN_FAILOVER_SUPPORTED
+#include <rbus.h>
+#define COMMAND_MAX 256
+#endif
 #include "ccsp_xdnsLog_wrapper.h"
 #include "safec_lib_common.h"
 //static pthread_mutex_t dnsmasqMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -80,7 +84,286 @@
 
 void* MonitorResolvConfForChanges(void *arg);
 
+#ifdef WAN_FAILOVER_SUPPORTED
+static void eventReceiveHandler(
+    rbusHandle_t handle,
+    rbusEvent_t const* event,
+    rbusEventSubscription_t* subscription)
+{
+    (void)handle;
+    (void)subscription;
 
+    const char* eventName = event->name;
+    rbusValue_t valBuff;
+    valBuff = rbusObject_GetValue(event->data, NULL );
+    if(!valBuff)
+    {
+        CcspTraceWarning(("XDNSEventConsumer : FAILED, value is NULL\n"));
+    }
+    else
+    {
+        const char* newValue = rbusValue_GetString(valBuff, NULL);
+        if ( strcmp(eventName,"Device.X_RDK_WanManager.CurrentActiveInterface") == 0 )
+        {
+            CcspTraceWarning(("XDNSEventConsumer : New value of CurrentActiveInterface is = %s\n",newValue));
+        }
+    }
+}
+
+/* sysevent definitions */
+#define XDNS_PRIMARY_WAN_IF_NAME "erouter0"
+#define XDNS_SYSEVENT_CURRENT_WAN_IFNAME_EVENT "current_wan_ifname"
+#define NUM_SYSEVENT_TYPES (sizeof(xdnsSysEvent_type_table)/sizeof(xdnsSysEvent_type_table[0]))
+
+void xdns_handle_sysevent_async(void);
+
+enum xdnsSysEvent_e{
+    SYSEVENT_CURRENT_WAN_IFNAME_EVENT,
+};
+
+/*Structure defined to get the XDNSSysEvent Noti type from the given Event names */
+
+typedef struct xdnsSysEvent_pair{
+  char                 *name;
+  enum xdnsSysEvent_e   event;
+} XDNS_SYSEVENT_PAIR;
+
+XDNS_SYSEVENT_PAIR xdnsSysEvent_type_table[] = {
+  { XDNS_SYSEVENT_CURRENT_WAN_IFNAME_EVENT,         SYSEVENT_CURRENT_WAN_IFNAME_EVENT     },
+};
+
+int get_xdnsSysEvent_type_from_name(char *name, enum xdnsSysEvent_e *type_ptr)
+{
+  errno_t rc = -1;
+  int ind = -1;
+  unsigned int i = 0;
+  size_t str_size = 0;
+
+  if((name == NULL) || (type_ptr == NULL))
+     return 0;
+
+  str_size = strlen(name);
+
+  for (i = 0 ; i < NUM_SYSEVENT_TYPES ; ++i)
+  {
+      rc = strcmp_s(name, str_size, xdnsSysEvent_type_table[i].name, &ind);
+      ERR_CHK(rc);
+      if((rc == EOK) && (!ind))
+      {
+          *type_ptr = xdnsSysEvent_type_table[i].event;
+          return 1;
+      }
+  }
+  return 0;
+}
+
+static BOOL XDNSSysEventHandlerStarted=FALSE;
+static int sysevent_fd = 0;
+static token_t sysEtoken;
+static async_id_t async_id[1];
+static char prevWanIfname[16] = {0};
+
+enum {SYS_EVENT_ERROR=-1, SYS_EVENT_OK, SYS_EVENT_TIMEOUT, SYS_EVENT_HANDLE_EXIT, SYS_EVENT_RECEIVED=0x10};
+
+/*
+ * Initialize sysevnt
+ *   return 0 if success and -1 if failure.
+ */
+
+int xdns_sysevent_init(void)
+{
+    int rc;
+
+    sysevent_fd = sysevent_open("127.0.0.1", SE_SERVER_WELL_KNOWN_PORT, SE_VERSION, "xdns", &sysEtoken);
+    if (!sysevent_fd) {
+        return(SYS_EVENT_ERROR);
+    }
+
+    /*you can register the event as you want*/
+
+    //register Current Wan ifname change event
+    sysevent_set_options(sysevent_fd, sysEtoken, XDNS_SYSEVENT_CURRENT_WAN_IFNAME_EVENT, TUPLE_FLAG_EVENT);
+    rc = sysevent_setnotification(sysevent_fd, sysEtoken, XDNS_SYSEVENT_CURRENT_WAN_IFNAME_EVENT, &async_id[0]);
+    if (rc) {
+       return(SYS_EVENT_ERROR);
+    }
+
+    return(SYS_EVENT_OK);
+}
+
+/*
+* Sysevent handler.
+*/
+void xdns_handle_sysevent_notification(char *event, char *val)
+{
+    enum xdnsSysEvent_e type;
+    errno_t rc = -1;
+    char xdnsflag[20] = {0};
+    if(!event || !val)
+        return;
+
+    CcspTraceWarning(("CcspXDNS: Received notification event:val %s:%s\n", event,val));
+
+    if(get_xdnsSysEvent_type_from_name(event, &type))
+    {
+        if(type == SYSEVENT_CURRENT_WAN_IFNAME_EVENT)
+        {
+            rc = syscfg_get(NULL, "X_RDKCENTRAL-COM_XDNS", xdnsflag, sizeof(xdnsflag));
+            if (0 != rc || '\0' == xdnsflag[0])
+            {
+                ERR_CHK(rc);
+                CcspTraceWarning(("CcspXDNS: Never enabled. Not writing to RESOLV_CONF\n"));
+            }
+            else if((xdnsflag[0] == '0') && xdnsflag[1] == '\0') //flag set to false
+            {
+                CcspTraceWarning(("CcspXDNS: Disabled. Not writing to RESOLV_CONF\n"));
+            }
+            else if((xdnsflag[0] == '1') && xdnsflag[1] == '\0') //if xDNS set to true
+            {
+                if(strcmp(val, prevWanIfname) != 0)
+                {
+                    if(strncmp(val, XDNS_PRIMARY_WAN_IF_NAME, sizeof(XDNS_PRIMARY_WAN_IF_NAME)))
+                    {
+                        CcspTraceWarning(("CcspXDNS: Unset XDNS config\n"));
+                        UnsetXdnsConfig();
+                        CcspTraceWarning(("CcspXDNS: triggering firewall restart\n"));
+                        commonSyseventSet("firewall-restart", "");
+                    }
+                    else
+                    {
+                        CcspTraceWarning(("CcspXDNS: Set XDNS config\n"));
+                        SetXdnsConfig();
+                        CcspTraceWarning(("CcspXDNS: triggering firewall restart\n"));
+                        commonSyseventSet("firewall-restart", "");
+                    }
+                }
+            }
+            rc = strcpy_s(prevWanIfname, sizeof(prevWanIfname), val);
+            if(rc != EOK)
+            {
+                ERR_CHK(rc);
+            }
+        }
+    }
+
+    return;
+}
+
+/*
+ * Listen sysevent notification message
+ */
+int xdns_sysvent_listener(void)
+{
+    int     ret = SYS_EVENT_TIMEOUT;
+    struct  timeval;
+
+    char name[COMMAND_MAX], val[256];
+    int namelen = sizeof(name);
+    int vallen = sizeof(val);
+    int err;
+    async_id_t getnotification_asyncid;
+
+    err = sysevent_getnotification(sysevent_fd, sysEtoken, name, &namelen,  val, &vallen, &getnotification_asyncid);
+    if (err)
+    {
+        CcspTraceError(("sysevent_getnotification failed with error: %d\n", err));
+    }
+    else
+    {
+        xdns_handle_sysevent_notification(name,val);
+        ret = SYS_EVENT_RECEIVED;
+    }
+
+    return ret;
+}
+
+/*
+ * Close sysevent
+ */
+int xdns_sysvent_close(void)
+{
+    /* we are done with this notification, so unregister it using async_id provided earlier */
+    sysevent_rmnotification(sysevent_fd, sysEtoken, async_id[0]);
+
+    /* close this session with syseventd */
+    sysevent_close(sysevent_fd, sysEtoken);
+
+    return (SYS_EVENT_OK);
+}
+
+/*
+ * check the initialized sysevent status (happened or not happened),
+ * if the event happened, call the functions registered for the events previously
+ */
+int xdns_check_sysevent_status(int fd, token_t token)
+{
+    UNREFERENCED_PARAMETER(fd);
+    UNREFERENCED_PARAMETER(token);
+    int returnStatus = ANSC_STATUS_SUCCESS;
+
+    return returnStatus;
+}
+
+/*
+ * The sysevent handler thread.
+ */
+static void *xdns_sysevent_handler_th(void *arg)
+{
+    UNREFERENCED_PARAMETER(arg);
+    int ret = SYS_EVENT_ERROR;
+
+    while(SYS_EVENT_ERROR == xdns_sysevent_init())
+    {
+        CcspTraceError(("%s: sysevent init failed!\n", __FUNCTION__));
+        sleep(1);
+    }
+
+    /*first check the events status*/
+    xdns_check_sysevent_status(sysevent_fd, sysEtoken);
+
+    while(1)
+    {
+        ret = xdns_sysvent_listener();
+        switch (ret)
+        {
+            case SYS_EVENT_RECEIVED:
+                break;
+            default :
+                CcspTraceError(("The received event status is not expected!\n"));
+                break;
+        }
+
+        if (SYS_EVENT_HANDLE_EXIT == ret) //end this event handling loop
+            break;
+
+        sleep(2);
+    }
+
+    xdns_sysvent_close();
+
+    return NULL;
+}
+
+/*
+ * Create a thread to handle the sysevent asynchronously
+ */
+void xdns_handle_sysevent_async(void)
+{
+    int err;
+    pthread_t event_handle_thread;
+
+    if(XDNSSysEventHandlerStarted)
+        return;
+    else
+        XDNSSysEventHandlerStarted = TRUE;
+
+    err = pthread_create(&event_handle_thread, NULL, xdns_sysevent_handler_th, NULL);
+    if(0 != err)
+    {
+        CcspTraceError(("%s: create the event handle thread error!\n", __FUNCTION__));
+    }
+}
+#endif
 void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
 {
     FILE *fp1;
@@ -1032,6 +1315,30 @@ CosaXDNSInitialize
         return ANSC_STATUS_FAILURE;
     }
 */
+#ifdef WAN_FAILOVER_SUPPORTED
+    errno_t rc = -1;
+    rc = strcpy_s(prevWanIfname, sizeof(prevWanIfname), XDNS_PRIMARY_WAN_IF_NAME);
+    if(rc != EOK)
+    {
+        ERR_CHK(rc);
+    }
+    xdns_handle_sysevent_async();
+    int ret = RBUS_ERROR_SUCCESS;
+    rbusHandle_t handle;
+    ret = rbus_open(&handle, "XDNSEventConsumer");
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("XDNSEventConsumer: rbus_open failed: %d\n", ret));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    ret = rbusEvent_Subscribe(handle, "Device.X_RDK_WanManager.CurrentActiveInterface", eventReceiveHandler, NULL, 0);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("AdvSecurityEventConsumer: rbusEvent_Subscribe failed: %d\n", ret));
+        return ANSC_STATUS_FAILURE;
+    }
+#endif
     printf("#### XDNS - CosaXDNSInitialize done. return %ld", returnStatus);
 
     return returnStatus;
