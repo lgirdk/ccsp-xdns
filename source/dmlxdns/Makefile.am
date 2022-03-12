@@ -16,8 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##########################################################################
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
+AM_CFLAGS =
 AM_LDFLAGS = -lccsp_common -lwebconfig_framework -lmsgpackc -ltrower-base64
 
 AM_CPPFLAGS = -Wall -Werror
