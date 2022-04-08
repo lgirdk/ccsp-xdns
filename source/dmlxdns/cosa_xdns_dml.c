@@ -26,7 +26,7 @@
 #include  "safec_lib_common.h"
 #include "cosa_xdns_webconfig_api.h"
 #include "base64.h"
-
+#include "secure_wrapper.h"
 int isValidIPv4Address(char *ipAddress)
 {
     struct sockaddr_in sa;
@@ -1083,8 +1083,8 @@ XDNS_Commit
 	   ERR_CHK(rc);
 	} 
 
-        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+        if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         
 	snprintf(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
@@ -1097,8 +1097,8 @@ XDNS_Commit
 	     ERR_CHK(rc);
 	}
 
-        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+        if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         snprintf(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultDeviceTag);
 	count++;        
@@ -1114,16 +1114,16 @@ XDNS_Commit
 	    ERR_CHK(rc);
 	}
 
-        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+        if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultDeviceDnsIPv6);
 	if(rc < EOK) {
 	    ERR_CHK(rc);
 	}
 
-        if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -6 rule add %s", iprulebuf);
+        if(v_secure_system("ip -6 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -6 rule add %s", iprulebuf);
 
         rc = sprintf_s(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultDeviceDnsIPv4, pMyObject->DefaultDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
 	if(rc < EOK) {
@@ -1138,16 +1138,16 @@ XDNS_Commit
 	    ERR_CHK(rc);
 	}
 
-        if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -4 rule add %s", iprulebuf);
+        if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -4 rule add %s", iprulebuf);
 
         rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pMyObject->DefaultSecondaryDeviceDnsIPv6);
 	if(rc < EOK) {
 	    ERR_CHK(rc);
 	}
 
-        if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-            vsystem("ip -6 rule add %s", iprulebuf);
+        if(v_secure_system("ip -6 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+            v_secure_system("ip -6 rule add %s", iprulebuf);
 
         rc = sprintf_s(dnsoverrideEntry[1], 256, "dnsoverride %s %s %s %s\n", defaultMacAddress, pMyObject->DefaultSecondaryDeviceDnsIPv4, pMyObject->DefaultSecondaryDeviceDnsIPv6, pMyObject->DefaultDeviceTag);
 	if(rc < EOK) {
@@ -1791,8 +1791,8 @@ DNSMappingTable_Commit
         ERR_CHK(rc);
     }
 
-    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-        vsystem("ip -4 rule add %s", iprulebuf);
+    if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+        v_secure_system("ip -4 rule add %s", iprulebuf);
 
 #ifdef FEATURE_IPV6
     rc = sprintf_s(iprulebuf, sizeof(iprulebuf), "from all to %s lookup erouter", pDnsTableEntry->DnsIPv6);
@@ -1800,8 +1800,8 @@ DNSMappingTable_Commit
 	ERR_CHK(rc);
     }
 
-    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-        vsystem("ip -6 rule add %s", iprulebuf);
+    if(v_secure_system("ip -6 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+        v_secure_system("ip -6 rule add %s", iprulebuf);
 
     rc = sprintf_s(dnsoverrideEntry[0], 256, "dnsoverride %s %s %s %s\n", pDnsTableEntry->MacAddress, pDnsTableEntry->DnsIPv4, pDnsTableEntry->DnsIPv6, pDnsTableEntry->Tag);
     if(rc < EOK) {

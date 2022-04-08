@@ -737,19 +737,3 @@ CosaUtilGetStaticRouteTable
 	return CosaUtilGetStaticRouteTablePriv(count, out_sroute);
 }
 
-int vsystem(const char *fmt, ...)
-{
-    char cmd[512] = {0};
-    va_list ap;
-    int n;
-
-    va_start(ap, fmt);
-    n = vsnprintf(cmd, sizeof(cmd), fmt, ap);
-    va_end(ap);
-
-    if (n < 0 || n >= (int)sizeof(cmd))
-        return -1;
-
-    fprintf(stderr, "%s: %s\n", __FUNCTION__, cmd);
-    return system(cmd);
-}

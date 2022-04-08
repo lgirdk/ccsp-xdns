@@ -27,4 +27,4 @@ hardware_platform = i686-linux-gnu
 lib_LTLIBRARIES = libdmlxdns.la
 libdmlxdns_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/dmlxdns -I$(top_srcdir)/source/XdnsSsp -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus $(CPPFLAGS)
 libdmlxdns_la_SOURCES = cosa_apis_util.c cosa_xdns_webconfig_api.c xdns_param.c xdns_comp_helpers.c plugin_main.c cosa_apis_util_priv.c cosa_apis_busutil.c plugin_main_apis.c cosa_xdns_apis.c cosa_xdns_dml.c
-libdmlxdns_la_LDFLAGS = -lccsp_common -lsyscfg -lsysevent -lutapi -lutctx -lwebconfig_framework -lmsgpackc -ltrower-base64 -lrbus
+libdmlxdns_la_LDFLAGS = -lccsp_common -lsyscfg -lsysevent -lutapi -lutctx -lwebconfig_framework -lmsgpackc -ltrower-base64 -lrbus -lsecure_wrapper

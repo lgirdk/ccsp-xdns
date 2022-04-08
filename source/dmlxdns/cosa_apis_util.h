@@ -122,6 +122,4 @@ CosaUtilGetStaticRouteTable
     );
 
 
-int vsystem(const char *fmt, ...);
-
 #endif

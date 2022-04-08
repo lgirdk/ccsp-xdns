@@ -78,6 +78,7 @@
 #endif
 #include "ccsp_xdnsLog_wrapper.h"
 #include "safec_lib_common.h"
+#include "secure_wrapper.h"
 //static pthread_mutex_t dnsmasqMutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -1065,8 +1066,8 @@ CosaDmlGetSelfHealCfg(
                         }
 			Secondaryipv4count=1;
 		    }
-                    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        vsystem("ip -4 rule add %s", iprulebuf);                
+                    if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+                        v_secure_system("ip -4 rule add %s", iprulebuf);
                 }
                 else
                 {
@@ -1104,8 +1105,8 @@ CosaDmlGetSelfHealCfg(
 			Secondaryipv6count=1;
 		    }
 
-                    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        vsystem("ip -6 rule add %s", iprulebuf);
+                    if(v_secure_system("ip -6 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+                        v_secure_system("ip -6 rule add %s", iprulebuf);
                 }
                 else
                 {
@@ -1174,8 +1175,8 @@ CosaDmlGetSelfHealCfg(
 			ERR_CHK(rc);
 		    }
 
-                    if(vsystem("ip -4 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        vsystem("ip -4 rule add %s", iprulebuf);
+                    if(v_secure_system("ip -4 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+                        v_secure_system("ip -4 rule add %s", iprulebuf);
 
     #ifdef FEATURE_IPV6
 
@@ -1184,14 +1185,12 @@ CosaDmlGetSelfHealCfg(
 			 ERR_CHK(rc);
 		    }
 
-                    if(vsystem("ip -6 rule show | grep \"%s\" | grep -v grep >/dev/null", iprulebuf) != 0)
-                        vsystem("ip -6 rule add %s", iprulebuf);
+                    if(v_secure_system("ip -6 rule show | grep '%s' | grep -v grep >/dev/null", iprulebuf) != 0)
+                        v_secure_system("ip -6 rule add %s", iprulebuf);
     #endif                    
             }
 
-            index++;        
-
-
+            index++;
             FillEntryInList(pMyObject, pDnsTableEntry);
         }
 
