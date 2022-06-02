@@ -20,7 +20,6 @@
 #ifndef  _COSA_XDNS_WEBCONFIG_API_H
 #define  _COSA_XDNS_WEBCONFIG_API_H
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -38,6 +37,15 @@
 #define DATA_BLOCK_SIZE 256
 #define XDNS_CACHE_SIZE 256
 
+#define IPV4_LOOPBACK "127.0.0.1"
+#define IPV6_LOOPBACK "::1"
+#define USE_RDK_DEFAULT_STRING "USE_RDK_DEFAULT"
+
+typedef enum _erouter_mode {
+    erouter_mode_IPv4 = 0,
+    erouter_mode_IPv6 = 1,
+    erouter_mode_DualStack = 3
+} erouter_mode;
 
 typedef struct {
     char MacAddress[STR_SIZE];
@@ -65,14 +73,14 @@ extern xdns_cache XDNS_Data_Cache;
 extern xdns_cache XDNS_tmp_bck;
 
 
-
-
-
 void init_xdns_cache(xdns_cache *tmp_xdns_cache);
 void print_xdns_cache(xdns_cache *tmp_xdns_cache);
 void clear_xdns_cache(xdns_cache *tmp_xdns_cache);
 uint32_t getBlobVersion(char* subdoc);
 int setBlobVersion(char* subdoc,uint32_t version);
+int xdns_read_dns_ip(char *UseRDKDefaultDeviceDnsIPv4, char *UseRDKDefaultDeviceDnsIPv6);
+int xdns_load_dns_ip(char *DnsIPv4, char *DnsIPv6, char *UseRDKDefaultDeviceDnsIPv4, char *UseRDKDefaultDeviceDnsIPv6);
+int xdns_read_load_dns_ip(char *Blob_Valid_IPv4, char *Blob_Valid_IPv6, char *DnsIPv4, char *DnsIPv6);
 void webConfigFrameworkInit() ;
 pErr Process_XDNS_WebConfigRequest(void *Data);
 int set_xdns_conf(xdnsdoc_t *xd, xdns_cache *tmp_xdns_cache);
