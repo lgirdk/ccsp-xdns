@@ -220,6 +220,13 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
                         CreateDnsmasqServerConf(pMyObject);
                 }
 
+		/* CID-164173 fix */
+		if(fp1 != NULL)
+		{
+		    fclose(fp1);
+                    fp1 = NULL;
+		}
+
                 if(!SetXdnsConfig())
 #ifdef WAN_FAILOVER_SUPPORTED
                 {
