@@ -25,7 +25,7 @@
 #include "ccsp_xdnsLog_wrapper.h"
 #include  "safec_lib_common.h"
 #include "cosa_xdns_webconfig_api.h"
-#include "base64.h"
+#include <trower-base64/base64.h>
 #include "secure_wrapper.h"
 int isValidIPv4Address(char *ipAddress)
 {
