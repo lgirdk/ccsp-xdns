@@ -753,7 +753,7 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZ
     int i;
     for( i=0; i< count;i++)
     {
-    if(overrideEntry[i])
+    if(overrideEntry[i][0] != '\0')
         fprintf(fp2, "%s", overrideEntry[i]);
     }
     fclose(fp1);
@@ -986,19 +986,6 @@ CosaDmlGetSelfHealCfg(
 
 	pMappingContainer = (PCOSA_DML_MAPPING_CONTAINER)AnscAllocateMemory(sizeof(COSA_DML_MAPPING_CONTAINER));
 
-    if( access( DNSMASQ_SERVERS_CONF, F_OK ) != -1 )
-    {
-    	printf("CosaDmlGetSelfHealCfg: Calling RefreshResolvConfEntry");
-    	RefreshResolvConfEntry();
-    } 
-    else 
-    {
-        pMappingContainer->XDNSEntryCount = 0;
-       	printf("CosaDmlGetSelfHealCfg: Calling CreateDnsmasqServerConf");
-        CreateDnsmasqServerConf(pMyObject);
-        return pMappingContainer;
-    }
-
     //pthread_mutex_lock(&dnsmasqMutex);
 
     /* MURUGAN - below logic is to add ip rule for each dns upstream server */
@@ -1008,6 +995,8 @@ CosaDmlGetSelfHealCfg(
 
     if ( (fp_dnsmasq_conf=fopen(DNSMASQ_SERVERS_CONF, "r")) != NULL )
     {
+	printf("CosaDmlGetSelfHealCfg: Calling RefreshResolvConfEntry");
+	RefreshResolvConfEntry();
         while ( fgets(buf, sizeof(buf), fp_dnsmasq_conf)!= NULL )
         {
             char *newline = strchr( buf, '\n' );
@@ -1196,10 +1185,19 @@ CosaDmlGetSelfHealCfg(
 
 
     }
+    else
+    {
+        pMappingContainer->XDNSEntryCount = 0;
+        printf("CosaDmlGetSelfHealCfg: Calling CreateDnsmasqServerConf");
+        CreateDnsmasqServerConf(pMyObject);
+        return pMappingContainer;
+    }
+    if(pMappingContainer != NULL)
+    {
+	    pMappingContainer->XDNSEntryCount = index;
+	    printf("CosaDmlGetSelfHealCfg XDNSEntryCount %d\n", index);
+    }
 
-    pMappingContainer->XDNSEntryCount = index;
-
-    printf("CosaDmlGetSelfHealCfg XDNSEntryCount %d\n", index);
     if(fp_dnsmasq_conf) {
 	fclose(fp_dnsmasq_conf);
     }

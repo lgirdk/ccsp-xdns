@@ -225,11 +225,10 @@ ssp_XdnsMbi_Initialize
     )
 {
     UNREFERENCED_PARAMETER(user_data);
-    ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);
 
-    return ( returnStatus == ANSC_STATUS_SUCCESS ) ? 0 : 1;
+    return 0;
 }
 
 int
@@ -239,11 +238,10 @@ ssp_XdnsMbi_Finalize
     )
 {
     UNREFERENCED_PARAMETER(user_data);
-    ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);
 
-    return ( returnStatus == ANSC_STATUS_SUCCESS ) ? 0 : 1;
+    return 0;
 }
 
 
@@ -268,10 +266,9 @@ ssp_XdnsMbi_FreeResources
 {
     UNREFERENCED_PARAMETER(user_data);
     UNREFERENCED_PARAMETER(priority);
-    ANSC_STATUS             returnStatus    = ANSC_STATUS_SUCCESS;
 
     printf("In %s()\n", __FUNCTION__);
 
-    return ( returnStatus == ANSC_STATUS_SUCCESS ) ? 0 : 1;
+    return 0;
 }
 

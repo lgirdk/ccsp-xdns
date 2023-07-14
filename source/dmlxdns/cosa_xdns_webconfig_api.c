@@ -783,9 +783,8 @@ int set_xdns_conf(xdnsdoc_t *xd, xdns_cache *tmp_xdns_cache)
             }
         }
 
-	
-	return (rc == EOK? 0: 1);
-		
+	return 0;
+
 }
 
 /* CallBack API to execute XDNS Blob request */
@@ -915,18 +914,15 @@ void freeResources_XDNS(void *arg)
     
 	execData *blob_exec_data  = (execData*) arg;
 
-	xdnsdoc_t *xd = (xdnsdoc_t *) blob_exec_data->user_data ;
-
-	if ( xd != NULL )
+	if(blob_exec_data != NULL)
 	{
+		xdnsdoc_t *xd = (xdnsdoc_t *) blob_exec_data->user_data ;
+		if ( xd != NULL )
+		{
 		xdnsdoc_destroy( xd );
 		xd = NULL;
-
-    	}
-
-    	if ( blob_exec_data != NULL )
-    	{
-        	free(blob_exec_data);
-        	blob_exec_data = NULL ;
-    	}
+		}
+		free(blob_exec_data);
+		blob_exec_data = NULL ;
+	}
 }

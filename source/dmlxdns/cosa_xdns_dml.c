@@ -139,16 +139,15 @@ XDNSDeviceInfo_GetParamBoolValue
     {
         char buf[5] = {0};
         syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
-        if( buf != NULL )
-        {
-    		int var=atoi(buf);
+	if(buf[0] != '\0')
+	{
+		int var=atoi(buf);
     		if(var)
     		{
                         *pBool = TRUE;
                         return TRUE;
                 }
-        }
-
+	}
         *pBool = FALSE;
 
         return TRUE;
@@ -185,17 +184,16 @@ CcspXdnsConsoleTrace(("RDK_LOG_DEBUG, Xdns %s : ENTER \n", __FUNCTION__ ));
         // Check if value is same as already SET one.
         char buf[5] = {0};
         syscfg_get( NULL, "X_RDKCENTRAL-COM_XDNS", buf, sizeof(buf));
-        if( buf != NULL )
-        {
-            int var=atoi(buf);
-
-            if(((bValue == TRUE) && (var)) ||
-               ((bValue == FALSE) && (!var)))
-            {
-                fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is same in DB, just return\n",__FUNCTION__);
-                return TRUE;
-            }
-        }
+	if(buf[0] != '\0')
+	{
+		int var=atoi(buf);
+		
+		if(((bValue == TRUE) && (var)) || ((bValue == FALSE) && (!var)))
+		{
+			fprintf(stderr, "%s X_RDKCENTRAL-COM_XDNS value is same in DB, just return\n",__FUNCTION__);
+			return TRUE;
+		}
+	}
 
         if( bValue == TRUE)
         {

@@ -508,7 +508,7 @@ CosaUtilGetLowerLayers
 
                     if ( ulEntryInstanceNum )
                     {
-                        _ansc_sprintf(ucEntryFullPath, "%s%lu", "Device.Bridging.Bridge.", ulEntryInstanceNum);
+                        snprintf(ucEntryFullPath,sizeof(ucEntryFullPath), "%s%lu", "Device.Bridging.Bridge.", ulEntryInstanceNum);
                         rc = sprintf_s(ucLowerEntryPath, sizeof(ucLowerEntryPath),"%s%s", ucEntryFullPath, ".PortNumberOfEntries");
 			if(rc < EOK) {
 			     ERR_CHK(rc);
@@ -683,7 +683,7 @@ CosaUtilGetFullPathNameByKeyword
 			    ERR_CHK(rc);
 			}
 
-                        _ansc_sprintf(ucEntryParamName, "%s%s", ucEntryFullPath, pParameterName);
+                        snprintf(ucEntryParamName,sizeof(ucEntryParamName), "%s%s", ucEntryFullPath, pParameterName);
 
 			if ( 0 == CosaGetParamValueString(ucEntryParamName, ucEntryNameValue, &ulEntryNameLen))
                         {
