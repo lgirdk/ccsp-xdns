@@ -372,8 +372,15 @@ void GetDnsMasqFileEntry(char* macaddress, char (*defaultEntry)[MAX_BUF_SIZE])
     char dnsmasqConfEntry[256] = {0};
     errno_t        rc          = -1;
 
-    if(!macaddress || !strlen(macaddress))
+    if(!macaddress || !strlen(macaddress) || !defaultEntry)
     {
+        CcspTraceError(("%s macaddress & defaultEntry NULL check \n",__FUNCTION__));
+        return;
+    }
+
+    if (count < 0 || count >= MAX_BUF_SIZE)
+    {
+        CcspTraceError(("%s count NULL check \n",__FUNCTION__));
         return;
     }
 
@@ -704,8 +711,15 @@ void ReplaceDnsmasqConfEntry(char* macaddress, char (*overrideEntry)[MAX_BUF_SIZ
     char dnsmasqConfEntry[256] = {0};
 	//pthread_mutex_lock(&dnsmasqMutex);
 
-    if(!macaddress || !strlen(macaddress))
+    if(!macaddress || !strlen(macaddress) || !overrideEntry)
     {
+        CcspTraceError(("%s macaddress & defaultEntry NULL check \n",__FUNCTION__));
+        return;
+    }
+
+    if (count < 0 || count >= MAX_BUF_SIZE)
+    {
+        CcspTraceError(("%s count NULL check \n",__FUNCTION__));
         return;
     }
 
