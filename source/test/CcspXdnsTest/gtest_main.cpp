@@ -25,7 +25,7 @@
 #include <gmock/gmock.h>
 
 #define GTEST_DEFAULT_RESULT_FILEPATH "/tmp/Gtest_Report/"
-#define GTEST_DEFAULT_RESULT_FILENAME "CcspXdnsSsp_gtest_report.xml"
+#define GTEST_DEFAULT_RESULT_FILENAME "CcspXdnsTest_gtest_report.xml"
 #define GTEST_REPORT_FILEPATH_SIZE 128
 
 GTEST_API_ int main(int argc, char *argv[])

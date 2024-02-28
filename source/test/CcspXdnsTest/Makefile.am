@@ -16,4 +16,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##########################################################################
-SUBDIRS = CcspXdnsTest DnsmasqTest
+
+AM_CFLAGS = -D_ANSC_LINUX
+AM_CFLAGS += -D_ANSC_USER
+
+AM_CPPFLAGS = -Wall -g -Werror
+AM_CXXFLAGS = -std=c++11
+#AM_CXXFLAGS += --coverage
+
+ACLOCAL_AMFLAGS = -I m4
+hardware_platform = i686-linux-gnu
+
+bin_PROGRAMS = CcspXdnsTest_gtest.bin
+CcspXdnsTest_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(includedir)/gtest -I${top_srcdir}/gtest/include -I${top_srcdir}/source -I${top_srcdir}/source/include -I${top_srcdir}/include
+CcspXdnsTest_gtest_bin_SOURCES =  CcspXdnsTest.cpp \
+                                  ../mocks/mock_syscfg.cpp \
+                                  gtest_main.cpp
+CcspXdnsTest_gtest_bin_LDADD = ${top_builddir}/source/dmlxdns/libdmlxdns.la
+CcspXdnsTest_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov -lccsp_common -pthread
+
