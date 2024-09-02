@@ -1,8 +1,9 @@
+#!/bin/sh
 ##########################################################################
-# If not stated otherwise in this file or this component's LICENSE
+# If not stated otherwise in this file or this component's Licenses.txt
 # file the following copyright and licenses apply:
 #
-# Copyright 2016 RDK Management
+# Copyright 2015 RDK Management
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +17,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##########################################################################
+# Run this to generate all the initial makefiles, etc.
+#
+test -n "$srcdir" || srcdir=`dirname $0`
+test -n "$srcdir" || srcdir=.
+olddir=`pwd`
+cd $srcdir
+AUTORECONF=`which autoreconf`
 
-AM_CFLAGS = -D_ANSC_LINUX
-AM_CFLAGS += -D_ANSC_USER
-
-AM_CPPFLAGS = -Wall -g -Werror
-AM_CXXFLAGS = -std=c++11
-#AM_CXXFLAGS += --coverage
-
-ACLOCAL_AMFLAGS = -I m4
-hardware_platform = i686-linux-gnu
-
-bin_PROGRAMS = DnsmasqTest_gtest.bin
-DnsmasqTest_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(includedir)/gtest -I${top_srcdir}/gtest/include -I${top_srcdir}/source -I${top_srcdir}/source/include
-DnsmasqTest_gtest_bin_SOURCES =  DnsmasqTest.cpp\
-                                 gtest_main.cpp
-DnsmasqTest_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov -pthread
+if test -z $AUTORECONF; then
+	echo '*** no autoreconf found. please install it ***'
+	exit 1
+fi
+autoreconf --force --install --verbose || exit $?
+cd $olddir || exit $?
+test -n "$NOCONFIGURE" || "$srcdir/configure" "$@"
